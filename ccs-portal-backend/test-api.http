@@ -1,0 +1,93 @@
+### Test API Endpoints for CCS Training Portal Backend
+
+### 1. Get Server Status
+GET http://localhost:5000/
+
+### 2. Register a new admin user
+POST http://localhost:5000/api/auth/admin/register
+Content-Type: application/json
+
+{
+  "email": "admin@iilm.edu",
+  "password": "admin123",
+  "name": "Admin User",
+  "secretKey": "admin-secret-123"
+}
+
+### 3. Login with admin credentials
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@iilm.edu",
+  "password": "admin123"
+}
+
+### 4. Get user profile (replace TOKEN with actual token from login)
+GET http://localhost:5000/api/auth/profile
+Authorization: Bearer TOKEN
+
+### 5. Create a new page (admin/staff only)
+POST http://localhost:5000/api/pages
+Content-Type: application/json
+Authorization: Bearer TOKEN
+
+{
+  "title": "About CCS Training Portal",
+  "slug": "about-portal",
+  "content": "Welcome to the CCS Training Portal. This platform provides comprehensive training and placement services...",
+  "excerpt": "Learn about our training portal and services",
+  "category": "about",
+  "status": "published",
+  "metaTitle": "About CCS Training Portal",
+  "metaDescription": "Comprehensive training and placement portal for students",
+  "metaKeywords": ["training", "placement", "education", "portal"]
+}
+
+### 6. Get all pages (admin/staff only)
+GET http://localhost:5000/api/pages
+Authorization: Bearer TOKEN
+
+### 7. Get published pages (public)
+GET http://localhost:5000/api/pages/published
+
+### 8. Get pages by category
+GET http://localhost:5000/api/pages/category/about
+
+### 9. Get page by slug
+GET http://localhost:5000/api/pages/slug/about-portal
+
+### 10. Admin dashboard statistics
+GET http://localhost:5000/api/admin/dashboard
+Authorization: Bearer TOKEN
+
+### 11. Get all users (admin only)
+GET http://localhost:5000/api/admin/users
+Authorization: Bearer TOKEN
+
+### 12. Create staff user (admin only)
+POST http://localhost:5000/api/admin/users
+Content-Type: application/json
+Authorization: Bearer TOKEN
+
+{
+  "email": "staff@iilm.edu",
+  "password": "staff123",
+  "name": "Staff Member",
+  "role": "staff"
+}
+
+### 13. Get system settings (admin only)
+GET http://localhost:5000/api/admin/settings
+Authorization: Bearer TOKEN
+
+### 14. Update system settings (admin only)
+PUT http://localhost:5000/api/admin/settings
+Content-Type: application/json
+Authorization: Bearer TOKEN
+
+{
+  "siteName": "CCS Training Portal v2",
+  "maintenanceMode": false,
+  "allowRegistrations": true
+}

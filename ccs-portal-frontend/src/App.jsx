@@ -18,6 +18,7 @@ import Contact from './pages/Contact';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import UserManagement from './pages/Admin/UserManagement';
 import SystemGovernance from './pages/Admin/SystemGovernance';
+import PageManagement from './pages/Admin/PageManagement';
 
 // Faculty Pages
 import FacultyDashboard from './pages/Faculty/FacultyDashboard';
@@ -84,6 +85,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />
+          <Route path="/admin/pages" element={<ProtectedRoute allowedRoles={['admin', 'staff']}><PageManagement /></ProtectedRoute>} />
 
           {/* Faculty Routes */}
           <Route path="/faculty" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyDashboard /></ProtectedRoute>} />

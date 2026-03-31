@@ -1,0 +1,362 @@
+const express = require('express');
+const router = express.Router();
+const { body } = require('express-validator');
+const User = require('../models/User.model');
+const Page = require('../models/Page.model');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
+
+/**
+ * Get dashboard statistics (admin only)
+ */
+router.get('/dashboard', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    // Get user statistics
+    const userStats = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
+
+    // Get page statistics
+    const pageStats = await Page.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Get recent activities
+    const recentPages = await Page.find()
+      .populate('author', 'name email')
+      .populate('lastEditedBy', 'name email')
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    const recentUsers = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Calculate totals
+    const totalUsers = userStats.reduce((sum, stat) => sum + stat.count, 0);
+    const totalPages = pageStats.reduce((sum, stat) => sum + stat.count, 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        statistics: {
+          users: {
+            total: totalUsers,
+            byRole: userStats
+          },
+          pages: {
+            total: totalPages,
+            byStatus: pageStats
+          }
+        },
+        recentActivities: {
+          pages: recentPages,
+          users: recentUsers
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard statistics.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get all users (admin only)
+ */
+router.get('/users', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      role,
+      status,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build query
+    const query = {};
+    
+    if (role) query.role = role;
+    if (status) query.status = status;
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Sort options
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Execute query with pagination
+    const users = await User.find(query)
+      .select('-password')
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const total = await User.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching users.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get user by ID (admin only)
+ */
+router.get('/users/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    // Get user's pages
+    const userPages = await Page.find({ author: user._id })
+      .select('title slug status createdAt')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+        pages: userPages
+      }
+    });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Update user (admin only)
+ */
+router.put('/users/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, role, status } = req.body;
+    const updates = {};
+
+    if (name) updates.name = name;
+    if (email) updates.email = email;
+    if (role) updates.role = role;
+    if (status) updates.status = status;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully.',
+      data: { user }
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating user.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Delete user (admin only)
+ */
+router.delete('/users/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    // Prevent deleting own account
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account.'
+      });
+    }
+
+    // Delete user's pages
+    await Page.deleteMany({ author: user._id });
+
+    // Delete user
+    await user.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'User and associated pages deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting user.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Create staff/admin user (admin only)
+ */
+router.post('/users', authenticate, authorize('admin'), [
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }),
+  body('name').notEmpty().trim(),
+  body('role').isIn(['admin', 'staff', 'faculty', 'placement', 'student'])
+], async (req, res) => {
+  try {
+    const { email, password, name, role } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email.'
+      });
+    }
+
+    // Create new user
+    const user = new User({
+      email,
+      password,
+      name,
+      role: role || 'staff'
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully.',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          status: user.status
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating user.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * System settings (admin only)
+ */
+router.get('/settings', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    // In a real application, you would fetch from a Settings model
+    const settings = {
+      siteName: 'CCS Training Portal',
+      siteDescription: 'Comprehensive training and placement portal',
+      maintenanceMode: false,
+      allowRegistrations: true,
+      defaultUserRole: 'student',
+      emailNotifications: true,
+      maxPagesPerUser: 50,
+      seoOptimization: true
+    };
+
+    res.status(200).json({
+      success: true,
+      data: { settings }
+    });
+  } catch (error) {
+    console.error('Get settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching settings.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Update system settings (admin only)
+ */
+router.put('/settings', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const updates = req.body;
+    
+    // In a real application, you would save to a Settings model
+    // For now, we'll just return the updated settings
+    
+    res.status(200).json({
+      success: true,
+      message: 'Settings updated successfully.',
+      data: { settings: updates }
+    });
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating settings.',
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
