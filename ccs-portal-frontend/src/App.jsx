@@ -1,0 +1,116 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'sonner';
+
+// Pages
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import About from './pages/About';
+import Trainings from './pages/Trainings';
+import PlacementsPage from './pages/PlacementsPage';
+import FacultyPage from './pages/FacultyPage';
+import ELibrary from './pages/ELibrary';
+import Contact from './pages/Contact';
+
+// Admin Pages
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import UserManagement from './pages/Admin/UserManagement';
+import SystemGovernance from './pages/Admin/SystemGovernance';
+
+// Faculty Pages
+import FacultyDashboard from './pages/Faculty/FacultyDashboard';
+import CourseCreation from './pages/Faculty/CourseCreation';
+import AssessmentCreation from './pages/Faculty/AssessmentCreation';
+
+// Placement Pages
+import PlacementDashboard from './pages/Placement/PlacementDashboard';
+
+// Student Pages
+import StudentDashboard from './pages/Student/StudentDashboard';
+import MyCourses from './pages/Student/MyCourses';
+import CourseView from './pages/Student/CourseView';
+import AssessmentView from './pages/Student/AssessmentView';
+import MockTests from './pages/Student/MockTests';
+import Placements from './pages/Student/Placements';
+import Certificates from './pages/Student/Certificates';
+
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <>{children}</>;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/trainings" element={<Trainings />} />
+          <Route path="/placements" element={<PlacementsPage />} />
+          <Route path="/faculty" element={<FacultyPage />} />
+          <Route path="/e-library" element={<ELibrary />} />
+          <Route path="/contact" element={<Contact />} />
+
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
+          <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />
+
+          {/* Faculty Routes */}
+          <Route path="/faculty" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyDashboard /></ProtectedRoute>} />
+          <Route path="/faculty/course/new" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><CourseCreation /></ProtectedRoute>} />
+          <Route path="/faculty/course/edit/:courseId" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><CourseCreation /></ProtectedRoute>} />
+          <Route path="/faculty/assessment/new" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
+          <Route path="/faculty/assessment/edit/:assessmentId" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
+
+          {/* Placement Routes */}
+          <Route path="/placement" element={<ProtectedRoute allowedRoles={['placement', 'admin']}><PlacementDashboard /></ProtectedRoute>} />
+
+          {/* Student Routes */}
+          <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/courses" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MyCourses /></ProtectedRoute>} />
+          <Route path="/student/course/:courseId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><CourseView /></ProtectedRoute>} />
+          <Route path="/student/assessment/:assessmentId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><AssessmentView /></ProtectedRoute>} />
+          <Route path="/student/mock-tests" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockTests /></ProtectedRoute>} />
+          <Route path="/student/placements" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Placements /></ProtectedRoute>} />
+          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Certificates /></ProtectedRoute>} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+      <Toaster position="top-right" richColors closeButton />
+    </AuthProvider>
+  );
+}
+
+export default App;

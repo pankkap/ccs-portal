@@ -1,0 +1,5 @@
+{
+  "name": "CCS Portal - Career Service & LMS",
+  "description": "A comprehensive Learning Management System and Career Service portal for students, faculty, and placement officers. Features include course management, proctored assessments, mock tests, and job placement tracking.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

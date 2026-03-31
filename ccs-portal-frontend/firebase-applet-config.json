@@ -1,0 +1,10 @@
+{
+  "projectId": "continueaiagent",
+  "appId": "1:288853343871:web:2cd4e089ba7fe1a512c94a",
+  "apiKey": "AIzaSyBT1l23H_OiEIcjNI1YUY8IxLwo2YMKwjI",
+  "authDomain": "continueaiagent.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-f62b3e77-4e62-428d-ae75-8ad99343addf",
+  "storageBucket": "continueaiagent.firebasestorage.app",
+  "messagingSenderId": "288853343871",
+  "measurementId": ""
+}

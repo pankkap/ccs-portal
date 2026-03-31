@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "faculty", "placement", "student"] },
+        "name": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "qualifications": { "type": "string" },
+        "experience": { "type": "string" },
+        "linkedinUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "pending"] },
+        "lastLogin": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "LMS Course created by faculty",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "facultyId": { "type": "string" },
+        "facultyName": { "type": "string" },
+        "published": { "type": "boolean" },
+        "skills": { "type": "string" },
+        "duration": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "facultyId"]
+    },
+    "Module": {
+      "title": "Module",
+      "description": "Module within a course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["pdf", "link", "video"] },
+        "contentUrl": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "required": ["courseId", "title", "type"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "Course assessment/test",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "passingScore": { "type": "integer" },
+        "timeLimit": { "type": "integer" },
+        "proctoringEnabled": { "type": "boolean" },
+        "allowedAttempts": { "type": "integer" },
+        "questions": { "type": "array" }
+      },
+      "required": ["courseId", "title"]
+    },
+    "MockTest": {
+      "title": "MockTest",
+      "description": "Practice mock test for students",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "passingScore": { "type": "integer" },
+        "timeLimit": { "type": "integer" },
+        "proctoringEnabled": { "type": "boolean" },
+        "questions": { "type": "array" },
+        "published": { "type": "boolean" }
+      },
+      "required": ["title", "category"]
+    },
+    "Placement": {
+      "title": "Placement",
+      "description": "Job opening or recruitment drive",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyName": { "type": "string" },
+        "role": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "companyType": { "type": "string" },
+        "applicationsOpen": { "type": "boolean" },
+        "applyLink": { "type": "string" },
+        "recruitmentProcess": { "type": "array" },
+        "employabilityGuide": { "type": "string" },
+        "postedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyName", "role"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Student application for a placement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "placementId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "status": { "type": "string", "enum": ["applied", "shortlisted", "rejected", "selected"] },
+        "appliedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["placementId", "studentId"]
+    },
+    "Certificate": {
+      "title": "Certificate",
+      "description": "Course completion certificate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "courseId": { "type": "string" },
+        "courseTitle": { "type": "string" },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "certificateNumber": { "type": "string" }
+      },
+      "required": ["studentId", "courseId", "certificateNumber"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Student enrollment in a course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "progress": { "type": "integer" },
+        "completedModules": { "type": "array" },
+        "status": { "type": "string", "enum": ["in-progress", "completed"] },
+        "enrolledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "courseId"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Message from contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "PageContent": {
+      "title": "PageContent",
+      "description": "Customizable website page content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "page": { "type": "string" },
+        "sections": { "type": "array" }
+      },
+      "required": ["page"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/courses/{courseId}": { "schema": "Course", "description": "LMS Courses" },
+    "/courses/{courseId}/modules/{moduleId}": { "schema": "Module", "description": "Course modules" },
+    "/courses/{courseId}/assessments/{assessmentId}": { "schema": "Assessment", "description": "Course assessments" },
+    "/mockTests/{testId}": { "schema": "MockTest", "description": "Practice mock tests" },
+    "/placements/{placementId}": { "schema": "Placement", "description": "Job openings" },
+    "/applications/{applicationId}": { "schema": "Application", "description": "Job applications" },
+    "/certificates/{certId}": { "schema": "Certificate", "description": "Issued certificates" },
+    "/enrollments/{enrollmentId}": { "schema": "Enrollment", "description": "Course enrollments" },
+    "/contactMessages/{messageId}": { "schema": "ContactMessage", "description": "Contact form submissions" },
+    "/pageContent/{pageId}": { "schema": "PageContent", "description": "Website page content" }
+  }
+}
