@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
+import authService from '../services/authService';
 import { toast } from 'sonner';
 import { Shield, GraduationCap, Briefcase, UserCheck, Mail, Lock, LogIn, Users, Settings, FileEdit } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -19,7 +20,6 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginType, setLoginType] = useState('google'); // 'google' or 'email'
-  const [showRoleSelection, setShowRoleSelection] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -82,53 +82,29 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // In a real implementation, you would call your ExpressJS backend
-      // const response = await fetch('http://localhost:5000/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
+      const response = await authService.login({ email, password });
       
-      // const data = await response.json();
-      
-      // For demo purposes, we'll simulate a successful login
-      toast.info('Email login integration with ExpressJS backend is ready. Use Google Login for now.');
-      
-      // Simulate successful admin login
-      if (email.includes('admin') && password === 'admin123') {
-        toast.success('Demo: Admin login successful!');
-        navigate('/admin/dashboard');
+      if (response.success) {
+        toast.success(`Welcome back, ${response.data.user.name}!`);
+        
+        // Use window.location instead of navigate so AuthContext mounts and reads localStorage correctly
+        if (response.data.user.role === 'admin' || response.data.user.role === 'staff') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
       } else {
-        toast.info('For demo: Use admin/admin123 or use Google Login');
+        toast.error(response.message || 'Login failed');
       }
     } catch (error) {
       console.error("Email login error:", error);
-      toast.error(error.message || "Failed to login");
+      toast.error(error.response?.data?.message || error.message || "Failed to login");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRoleSelect = (role) => {
-    navigate(`/login?role=${role}`);
-    setShowRoleSelection(false);
-  };
 
-  // Role options for selection
-  const roleOptions = [
-    { id: 'student', label: 'Student', icon: GraduationCap, color: 'bg-green-100 text-green-600' },
-    { id: 'faculty', label: 'Faculty', icon: Users, color: 'bg-blue-100 text-blue-600' },
-    { id: 'placement', label: 'Placement', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
-    { id: 'staff', label: 'Staff', icon: UserCheck, color: 'bg-orange-100 text-orange-600' },
-    { id: 'admin', label: 'Admin', icon: Shield, color: 'bg-red-100 text-red-600' },
-  ];
-
-  // If no role is selected, show role selection
-  useEffect(() => {
-    if (!roleParam) {
-      setShowRoleSelection(true);
-    }
-  }, [roleParam]);
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 ${isStaff ? 'bg-[#0f172a]' : 'bg-[#e0f7f1]'}`}>
@@ -138,44 +114,7 @@ const Login = () => {
         className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
         <div className="p-8">
-          {/* Role Selection Modal */}
-          {showRoleSelection && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 bg-white z-10 p-8 rounded-2xl flex flex-col items-center justify-center"
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Select Your Role</h3>
-              <p className="text-gray-600 mb-8 text-center">Choose how you want to access the portal</p>
-              
-              <div className="grid grid-cols-2 gap-4 w-full">
-                {roleOptions.map((role) => {
-                  const Icon = role.icon;
-                  return (
-                    <motion.button
-                      key={role.id}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleRoleSelect(role.id)}
-                      className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 border-transparent hover:border-gray-300 transition-all ${role.color} bg-opacity-50`}
-                    >
-                      <Icon className="w-8 h-8 mb-3" />
-                      <span className="font-semibold text-gray-900">{role.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-              
-              <button
-                onClick={() => setShowRoleSelection(false)}
-                className="mt-8 text-gray-500 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-            </motion.div>
-          )}
-
-          {/* Icon Header */}
+          {/* Dynamic Role Icon Display */}
           <div className="flex justify-center mb-6">
             {isStaff ? (
               <div className="flex gap-3">
@@ -299,41 +238,9 @@ const Login = () => {
                   </>
                 )}
               </motion.button>
-
-              <div className="text-center text-sm text-gray-500">
-                <p>Demo credentials:</p>
-                <p className="font-mono">admin@iilm.edu / admin123</p>
-                <p className="mt-2">Or use Google Login for real authentication</p>
-              </div>
             </form>
           )}
 
-          {/* Role Switch */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => setShowRoleSelection(true)}
-              className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <Settings className="w-4 h-4" />
-              Switch to different role
-            </button>
-          </div>
-
-          {/* Admin/Staff Note */}
-          {(roleParam === 'admin' || roleParam === 'staff') && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-start gap-3">
-                <FileEdit className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-blue-900">Web Page Management</h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    As {roleParam === 'admin' ? 'Admin' : 'Staff'}, you can create, edit, and manage all web pages on the portal.
-                    Access the admin panel after login to manage content.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

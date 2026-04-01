@@ -18,6 +18,15 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  department: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  order: {
+    type: Number,
+    default: 0
+  },
   role: {
     type: String,
     enum: ['admin', 'staff', 'faculty', 'student', 'placement'],

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -8,28 +8,31 @@ import {
   Award, 
   Users, 
   Settings, 
-  LogOut
+  LogOut,
+  Shield,
+  Edit,
+  GraduationCap,
+  Book,
+  ArrowLeft,
+  Menu
 } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
 import { cn } from '../lib/utils';
+import { useAuth } from '../context/AuthContext';
 
 export const Sidebar = ({ role }) => {
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login');
-  };
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = {
     admin: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-      { icon: Users, label: 'User Management', path: '/admin/users' },
-      { icon: Settings, label: 'System Governance', path: '/admin/governance' },
+      { icon: Shield, label: 'Access Control', path: '/admin/access-control' },
+      { icon: Users, label: 'Faculty', path: '/admin/faculty' },
+      { icon: GraduationCap, label: 'Students', path: '/admin/students' },
+      { icon: Book, label: 'Courses', path: '/admin/courses' },
     ],
     faculty: [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty' },
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
       { icon: BookOpen, label: 'Course Creation', path: '/faculty/course/new' },
       { icon: CheckSquare, label: 'Assessment Creation', path: '/faculty/assessment/new' },
     ],
@@ -46,48 +49,92 @@ export const Sidebar = ({ role }) => {
   };
 
   const items = menuItems[role] || [];
+  
+  // All active sidebars use dark styling to contrast with colored backgrounds
+  const isDark = true; 
+  
+  const getSidebarTheme = (roleName) => {
+    switch (roleName) {
+      case 'student': return "bg-[#79AE6F] border-[#65995b]"; 
+      case 'faculty': return "bg-[#6367FF] border-[#4c50eb]";
+      case 'placement': return "bg-[#6E026F] border-[#5e015e]";
+      case 'admin':
+      default: return "bg-[#0f172a] border-[#1e293b]";
+    }
+  };
+
+  const getSidebarTitle = (roleName) => {
+    switch (roleName) {
+      case 'student': return "Student"; 
+      case 'faculty': return "Faculty";
+      case 'placement': return "Placement";
+      case 'admin':
+      default: return "Admin Panel";
+    }
+  };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            CCS
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">CCS Portal</h1>
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">IILM University</p>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {items.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => cn(
-              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-              isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            )}
+    <div className={cn(
+      "flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out z-50",
+      isCollapsed ? "w-20" : "w-64",
+      getSidebarTheme(role),
+      "border-r relative"
+    )}>
+        <div className={cn(
+            "h-16 flex items-center border-b transition-all duration-300 border-white/10", 
+            isCollapsed ? "justify-center px-0" : "px-6 justify-between"
+          )}>
+          {!isCollapsed && (
+            <h2 className="text-white font-bold tracking-widest uppercase text-lg">
+              {getSidebarTitle(role)}
+            </h2>
+          )}
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-black/10 transition-colors"
           >
-            <item.icon className="w-5 h-5" />
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
-      </div>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-6 space-y-2 px-3 no-scrollbar">
+        {items.map((item) => {
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              title={isCollapsed ? item.label : undefined}
+              className={({ isActive }) => cn(
+                "flex items-center rounded-xl text-sm font-medium transition-all duration-200 group relative",
+                isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
+                isActive 
+                  ? "bg-black/20 text-white shadow-lg shadow-black/10" 
+                  : "text-white/70 hover:bg-black/10 hover:text-white"
+              )}
+            >
+              <item.icon className={cn(
+                "w-5 h-5 flex-shrink-0 transition-transform duration-200", 
+                "opacity-90 group-hover:opacity-100 group-hover:scale-110"
+              )} />
+              
+              {!isCollapsed && (
+                <span className="whitespace-nowrap opacity-100 transition-opacity duration-300">
+                  {item.label}
+                </span>
+              )}
+              
+              {/* Tooltip for collapsed state */}
+              {isCollapsed && (
+                <div className="absolute left-full ml-4 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap hidden md:block shadow-xl">
+                  {item.label}
+                </div>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
+      {/* We removed the User Footer completely from the Sidebar, moving its functionality to AdminNavbar */}
     </div>
   );
 };

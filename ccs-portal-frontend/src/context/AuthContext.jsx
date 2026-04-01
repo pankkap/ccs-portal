@@ -11,11 +11,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (!user) {
-        setProfile(null);
+    // Check local storage first (for backend JWT auth)
+    const localToken = localStorage.getItem('token');
+    const localProfile = localStorage.getItem('profile');
+    
+    if (localToken && localProfile) {
+      try {
+        const parsedProfile = JSON.parse(localProfile);
+        setUser({ uid: parsedProfile._id || parsedProfile.id, email: parsedProfile.email });
+        setProfile(parsedProfile);
         setLoading(false);
+        return; // Don't subscribe to Firebase if using JWT backend
+      } catch (e) {
+        console.error('Error parsing local profile', e);
+      }
+    }
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!localToken) { // Only update from Firebase if no backend token exists
+        setUser(user);
+        if (!user) {
+          setProfile(null);
+          setLoading(false);
+        }
       }
     });
 
@@ -23,7 +41,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    // Skip if we already loaded from local storage (meaning JWT auth is used)
+    const localToken = localStorage.getItem('token');
+    if (localToken && profile) return;
+
+    if (user && !localToken) {
       const unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (doc) => {
         if (doc.exists()) {
           setProfile(doc.data());
@@ -40,6 +62,14 @@ export const AuthProvider = ({ children }) => {
       return () => unsubscribeProfile();
     }
   }, [user]);
+
+  const logout = async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('profile');
+    await auth.signOut();
+    setUser(null);
+    setProfile(null);
+  };
 
   const value = {
     user,

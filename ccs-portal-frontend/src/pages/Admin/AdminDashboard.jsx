@@ -78,20 +78,6 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-500 mt-2">High-level monitoring of system health and user activity.</p>
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleSeedData}
-              disabled={seeding}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50"
-            >
-              <Database className="w-4 h-4" />
-              {seeding ? 'Seeding...' : 'Seed Demo Data'}
-            </button>
-            <Link to="/admin/access-control" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all">
-              <UserPlus className="w-4 h-4" />
-              Add User
-            </Link>
-          </div>
         </header>
 
         {/* Stats Grid */}
@@ -118,7 +104,6 @@ const AdminDashboard = () => {
                 {[
                   { label: 'Manage Faculty', desc: 'Add, edit, delete, and reorder faculty profiles.', path: '/admin/faculty', icon: Users },
                   { label: 'Manage Courses', desc: 'Create and organize courses in the LMS.', path: '/admin/courses', icon: BookOpen },
-                  { label: 'Content Library', desc: 'Upload notes, videos, and presentations.', path: '/admin/e-library', icon: Database },
                   { label: 'Job Listings', desc: 'Post and manage placement opportunities.', path: '/admin/jobs', icon: Briefcase }
                 ].map((action, i) => (
                   <Link 

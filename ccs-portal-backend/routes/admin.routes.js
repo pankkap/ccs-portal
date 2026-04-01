@@ -359,4 +359,254 @@ router.put('/settings', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
+/**
+ * ==========================================
+ * FACULTY MANAGEMENT ROUTES
+ * ==========================================
+ */
+
+/**
+ * Get all faculty users (admin only)
+ */
+router.get('/faculty', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { department, search, role } = req.query;
+
+    const query = {
+      role: { $in: ['admin', 'faculty', 'placement'] }
+    };
+    
+    if (role && query.role.$in.includes(role)) {
+      query.role = role;
+    }
+    if (department && department !== 'all') {
+      query.department = department;
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { department: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const faculty = await User.find(query)
+      .select('-password')
+      .sort({ order: 1, createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        faculty
+      }
+    });
+  } catch (error) {
+    console.error('Get faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching faculty.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Create new faculty (admin only)
+ */
+router.post('/faculty', authenticate, authorize('admin'), [
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }),
+  body('name').notEmpty().trim(),
+  body('role').isIn(['admin', 'faculty', 'placement'])
+], async (req, res) => {
+  try {
+    const { email, password, name, role, department, status } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email.'
+      });
+    }
+
+    const user = new User({
+      email,
+      password,
+      name,
+      role: role || 'faculty',
+      department: department || '',
+      status: status || 'active'
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Faculty member created successfully.',
+      data: {
+        faculty: user
+      }
+    });
+  } catch (error) {
+    console.error('Create faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating faculty.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Update faculty (admin only)
+ */
+router.put('/faculty/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, role, department, status } = req.body;
+    const updates = {};
+
+    if (name) updates.name = name;
+    if (email) updates.email = email;
+    if (role) updates.role = role;
+    if (department !== undefined) updates.department = department;
+    if (status) updates.status = status;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Faculty not found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Faculty member updated successfully.',
+      data: { faculty: user }
+    });
+  } catch (error) {
+    console.error('Update faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating faculty.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Delete faculty (admin only)
+ */
+router.delete('/faculty/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Faculty not found.'
+      });
+    }
+
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account.'
+      });
+    }
+
+    await Page.deleteMany({ author: user._id });
+    await user.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Faculty member deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Delete faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting faculty.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Patch faculty role (admin only)
+ */
+router.patch('/faculty/role/:id', authenticate, authorize('admin'), [
+  body('role').isIn(['admin', 'faculty', 'placement'])
+], async (req, res) => {
+  try {
+    const { role } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Faculty not found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Faculty role updated successfully.',
+      data: { faculty: user }
+    });
+  } catch (error) {
+    console.error('Patch faculty role error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating role.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Bulk reorder faculty (admin only)
+ */
+router.patch('/faculty/reorder', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { items } = req.body; // Expects [{ id, order }]
+    
+    if (!Array.isArray(items)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Items must be an array.'
+      });
+    }
+
+    const updatePromises = items.map(item => 
+      User.findByIdAndUpdate(item.id, { order: item.order })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.status(200).json({
+      success: true,
+      message: 'Faculty reordered successfully.'
+    });
+  } catch (error) {
+    console.error('Reorder faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reordering faculty.',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

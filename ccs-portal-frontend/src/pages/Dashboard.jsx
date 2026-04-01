@@ -13,7 +13,7 @@ const Dashboard = () => {
           navigate('/admin');
           break;
         case 'faculty':
-          navigate('/faculty');
+          navigate('/faculty/dashboard');
           break;
         case 'placement':
           navigate('/placement');

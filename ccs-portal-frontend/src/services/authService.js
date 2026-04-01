@@ -27,11 +27,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    // DO NOT intercept 401s for the login endpoint itself, 
+    // so the Login component can display the "Invalid password" toast error
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+    
+    if (error.response?.status === 401 && !isLoginEndpoint) {
+      // Token expired or invalid for an authenticated route
       localStorage.removeItem('token');
       localStorage.removeItem('profile');
-      window.location.href = '/login';
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }
@@ -105,7 +109,7 @@ const authService = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('profile');
-    window.location.href = '/login';
+    window.location.href = '/';
   },
 
   // Check if user is authenticated
