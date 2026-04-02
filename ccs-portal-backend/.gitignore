@@ -1,2 +1,4 @@
 node_modules/
 .envdel .git\index.lock
+.env*
+!.env.example
