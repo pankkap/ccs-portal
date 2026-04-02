@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
+const passport = require('passport');
 
 // Load environment variables
 dotenv.config();
@@ -10,6 +12,7 @@ dotenv.config();
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
 const pageRoutes = require('./routes/page.routes');
+const authController = require('./controllers/auth.controller');
 
 // Initialize express app
 const app = express();
@@ -22,6 +25,11 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(passport.initialize());
+
+// Passport Config
+require('./config/passport');
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ccs-portal')
@@ -40,6 +48,12 @@ app.get('/', (req, res) => {
     }
   });
 });
+
+// Auth Callback (Root Level) to match user's Google Console: http://localhost:5000/auth/google/callback
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=oauth_failed' }),
+  authController.googleSSOCallback
+);
 
 // API routes
 app.use('/api/auth', authRoutes);

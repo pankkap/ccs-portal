@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase';
 import authService from '../services/authService';
 import { toast } from 'sonner';
 import { Shield, GraduationCap, Briefcase, UserCheck, Mail, Lock, LogIn, Users, Settings, FileEdit } from 'lucide-react';
@@ -21,55 +18,10 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loginType, setLoginType] = useState('google'); // 'google' or 'email'
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
-      if (userDoc.exists()) {
-        const profile = userDoc.data();
-        toast.success(`Welcome back, ${profile.name}!`);
-        
-        // Redirect based on role
-        if (profile.role === 'admin' || profile.role === 'staff') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
-      } else {
-        // First time login - assign role based on param or default to student
-        const assignedRole = roleParam || 'student';
-        
-        const profile = {
-          id: user.uid,
-          uid: user.uid,
-          email: user.email || '',
-          name: user.displayName || 'User',
-          photoURL: user.photoURL || '',
-          role: assignedRole,
-          status: 'active',
-          lastLogin: new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        };
-        
-        await setDoc(doc(db, 'users', user.uid), profile);
-        toast.success(`Account created as ${assignedRole}!`);
-        
-        if (assignedRole === 'admin' || assignedRole === 'staff') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error(error.message || "Failed to login");
-    } finally {
-      setLoading(false);
-    }
+  const handleGoogleLogin = () => {
+    // Standard secure redirect to backend which initiates Passport Google flow.
+    // hd parameter hints the domain to Google for better UX.
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/google?hd=iilm.edu`;
   };
 
   const handleEmailLogin = async (e) => {

@@ -4,36 +4,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Request interceptor no longer needs to manually attach tokens 
+// because withCredentials: true handles the cookie automatically.
 
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // DO NOT intercept 401s for the login endpoint itself, 
-    // so the Login component can display the "Invalid password" toast error
+    // DO NOT intercept 401s for the login endpoint OR the initial profile check, 
+    // as these are handled manually by AuthContext/Login and shouldn't trigger loops.
     const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+    const isProfileEndpoint = error.config?.url?.includes('/auth/profile');
     
-    if (error.response?.status === 401 && !isLoginEndpoint) {
-      // Token expired or invalid for an authenticated route
-      localStorage.removeItem('token');
+    if (error.response?.status === 401 && !isLoginEndpoint && !isProfileEndpoint) {
+      // Token expired or invalid for an authenticated route - backend cleared cookie
+      console.warn('Unauthorized request to protected endpoint. Redirecting to home.');
       localStorage.removeItem('profile');
       window.location.href = '/';
     }
@@ -46,8 +37,7 @@ const authService = {
   register: async (userData) => {
     try {
       const response = await api.post('/auth/admin/register', userData);
-      if (response.data.success && response.data.data.token) {
-        localStorage.setItem('token', response.data.data.token);
+      if (response.data.success) {
         localStorage.setItem('profile', JSON.stringify(response.data.data.user));
       }
       return response.data;
@@ -61,8 +51,7 @@ const authService = {
   login: async (credentials) => {
     try {
       const response = await api.post('/auth/login', credentials);
-      if (response.data.success && response.data.data.token) {
-        localStorage.setItem('token', response.data.data.token);
+      if (response.data.success) {
         localStorage.setItem('profile', JSON.stringify(response.data.data.user));
       }
       return response.data;
@@ -106,15 +95,19 @@ const authService = {
   },
 
   // Logout user
-  logout: () => {
-    localStorage.removeItem('token');
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     localStorage.removeItem('profile');
     window.location.href = '/';
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated (best effort on frontend, verified by profile fetch)
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('profile');
   },
 
   // Get current user token

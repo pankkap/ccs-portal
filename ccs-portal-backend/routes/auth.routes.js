@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth.middleware');
+const passport = require('passport');
 
 // Validation middleware
 const validateRegister = [
@@ -24,6 +25,13 @@ const validateChangePassword = [
 // Public routes
 router.post('/register', validateRegister, authController.register);
 router.post('/login', validateLogin, authController.login);
+router.post('/logout', authController.logout);
+
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', { 
+  scope: ['profile', 'email'],
+  prompt: 'select_account'
+}));
 
 // Protected routes (require authentication)
 router.get('/profile', authenticate, authController.getProfile);

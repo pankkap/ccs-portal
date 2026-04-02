@@ -44,6 +44,14 @@ const register = async (req, res) => {
     // Update last login
     await user.updateLastLogin();
 
+    // Set token in HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully.',
@@ -54,8 +62,7 @@ const register = async (req, res) => {
           name: user.name,
           role: user.role,
           status: user.status
-        },
-        token
+        }
       }
     });
   } catch (error) {
@@ -107,6 +114,14 @@ const login = async (req, res) => {
     // Update last login
     await user.updateLastLogin();
 
+    // Set token in HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     res.status(200).json({
       success: true,
       message: 'Login successful.',
@@ -118,8 +133,7 @@ const login = async (req, res) => {
           role: user.role,
           status: user.status,
           lastLogin: user.lastLogin
-        },
-        token
+        }
       }
     });
   } catch (error) {
@@ -227,10 +241,57 @@ const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * Logout user by clearing cookie
+ */
+const logout = (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully.'
+  });
+};
+
+/**
+ * Handle Google SSO Callback
+ */
+const googleSSOCallback = async (req, res) => {
+  try {
+    const user = req.user; // Passport supplies the authenticated user here
+    
+    // Generate JWT
+    const token = generateToken(user._id, user.role);
+    
+    // Update last login
+    await user.updateLastLogin();
+
+    // Set cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    // Redirect securely to frontend dashboard which will now fetch profile
+    res.redirect('http://localhost:3000/dashboard');
+  } catch (error) {
+    console.error('Google SSO Callback error:', error);
+    res.redirect('http://localhost:3000/login?error=oauth_failed');
+  }
+};
+
 module.exports = {
   register,
   login,
+  logout,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  googleSSOCallback
 };

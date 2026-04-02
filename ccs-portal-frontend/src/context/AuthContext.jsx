@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import authService from '../services/authService';
 
 const AuthContext = createContext(undefined);
 
@@ -11,62 +9,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage first (for backend JWT auth)
-    const localToken = localStorage.getItem('token');
-    const localProfile = localStorage.getItem('profile');
-    
-    if (localToken && localProfile) {
+    const initAuth = async () => {
       try {
-        const parsedProfile = JSON.parse(localProfile);
-        setUser({ uid: parsedProfile._id || parsedProfile.id, email: parsedProfile.email });
-        setProfile(parsedProfile);
-        setLoading(false);
-        return; // Don't subscribe to Firebase if using JWT backend
-      } catch (e) {
-        console.error('Error parsing local profile', e);
-      }
-    }
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!localToken) { // Only update from Firebase if no backend token exists
-        setUser(user);
-        if (!user) {
+        const response = await authService.getProfile();
+        if (response.success) {
+          const userProfile = response.data.user;
+          setUser({ uid: userProfile._id || userProfile.id, email: userProfile.email });
+          setProfile(userProfile);
+          localStorage.setItem('profile', JSON.stringify(userProfile));
+        } else {
+          // If profile fetch fails, clear state
+          setUser(null);
           setProfile(null);
-          setLoading(false);
+          localStorage.removeItem('profile');
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(null);
+        setProfile(null);
+        localStorage.removeItem('profile');
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribeAuth();
+    initAuth();
   }, []);
 
-  useEffect(() => {
-    // Skip if we already loaded from local storage (meaning JWT auth is used)
-    const localToken = localStorage.getItem('token');
-    if (localToken && profile) return;
-
-    if (user && !localToken) {
-      const unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-        if (doc.exists()) {
-          setProfile(doc.data());
-        } else {
-          // Profile might not exist yet if it's a new user
-          setProfile(null);
-        }
-        setLoading(false);
-      }, (error) => {
-        console.error("Error fetching profile:", error);
-        setLoading(false);
-      });
-
-      return () => unsubscribeProfile();
-    }
-  }, [user]);
+  // Firebase profile listener removed as we use backend API now.
 
   const logout = async () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('profile');
-    await auth.signOut();
+    await authService.logout();
     setUser(null);
     setProfile(null);
   };

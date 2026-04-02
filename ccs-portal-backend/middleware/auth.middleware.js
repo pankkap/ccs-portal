@@ -6,7 +6,8 @@ const User = require('../models/User.model');
  */
 const authenticate = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Extract token from HTTP-only cookie, fallback to Authorization header
+    const token = req.cookies.token || req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ 
