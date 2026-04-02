@@ -1,35 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { Briefcase, MapPin, Building2, Clock, Search, Filter, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Briefcase, MapPin, Building2, Clock, Search, Filter, ExternalLink, CheckCircle2, Loader2, Sparkles, Building, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDate } from '../../lib/utils';
+import placementService from '../../services/placementService';
 
-const Placements = () => {
+const StudentPlacements = () => {
   const { user, profile } = useAuth();
   const [placements, setPlacements] = useState([]);
   const [applications, setApplications] = useState({});
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchData = async () => {
       try {
-        const placementsSnap = await getDocs(collection(db, 'placements'));
-        const placementsData = placementsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPlacements(placementsData);
+        const placementsRes = await placementService.getPlacements();
+        setPlacements(placementsRes.success ? placementsRes.data.placements : []);
 
-        const appsQuery = query(collection(db, 'applications'), where('studentId', '==', user.uid));
-        const appsSnap = await getDocs(appsQuery);
-        const appsData = {};
-        appsSnap.docs.forEach(doc => {
-          const app = { id: doc.id, ...doc.data() };
-          appsData[app.placementId] = app;
-        });
-        setApplications(appsData);
+        // Note: For students, we might need an endpoint to get THEIR applications
+        // or filter the general applications list if authorized.
+        // Assuming the backend handles "my applications" if we hit a specific route
+        // For now, let's assume getApplications returns all if admin, or my applications if student (standard MERN pattern)
+        const appsRes = await placementService.getApplications();
+        if (appsRes.success) {
+          const appsData = {};
+          appsRes.data.applications.forEach(app => {
+            appsData[app.placementId._id || app.placementId] = app;
+          });
+          setApplications(appsData);
+        }
       } catch (error) {
         console.error("Error fetching placements data:", error);
       } finally {
@@ -38,119 +38,140 @@ const Placements = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, []);
 
   const handleApply = async (placement) => {
-    if (!user) return;
-
     try {
-      const application = {
-        placementId: placement.id,
-        studentId: user.uid,
-        studentName: profile?.name || 'Student',
-        status: 'applied',
-        appliedAt: new Date().toISOString()
-      };
+      const res = await placementService.applyForJob({
+        placementId: placement._id,
+        resume: profile?.resume || '', // Use profile resume if available
+        notes: 'Applied via student portal'
+      });
 
-      const docRef = await addDoc(collection(db, 'applications'), application);
-      setApplications(prev => ({ ...prev, [placement.id]: { id: docRef.id, ...application } }));
-      toast.success(`Successfully applied for ${placement.role} at ${placement.company}!`);
+      if (res.success) {
+        setApplications(prev => ({ 
+          ...prev, 
+          [placement._id]: res.data.application 
+        }));
+        toast.success(`Application transmitted to ${placement.company} HR!`);
+      }
     } catch (error) {
-      console.error("Application error:", error);
-      toast.error("Failed to apply for job.");
+      toast.error(error.message || "Failed to submit application");
     }
   };
 
+  const filteredPlacements = placements.filter(p => 
+    p.role.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.company.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) return (
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Aggregating Career Opportunities...</p>
+      </div>
+    </Layout>
+  );
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900">Placement Portal</h1>
-          <p className="text-gray-500 mt-2">Explore job openings and recruitment drives.</p>
+      <div className="max-w-7xl mx-auto pb-20">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Corporate Relations</h1>
+            <p className="text-gray-500 mt-2 text-lg">Direct access to elite recruitment drives and internships.</p>
+          </div>
+          <div className="flex items-center gap-4 p-2 bg-blue-50 rounded-2xl border border-blue-100">
+             <TrendingUp className="w-5 h-5 text-blue-600 ml-2" />
+             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest pr-4">12+ New Openings This Week</span>
+          </div>
         </header>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-10">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="flex flex-col md:flex-row gap-6 mb-12">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
             <input
               type="text"
-              placeholder="Search companies or roles..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by Designation, Technology, or Corporate Brand..."
+              className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-[24px] text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all shadow-sm font-medium"
             />
           </div>
-          <button className="px-6 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 flex items-center gap-2 hover:bg-gray-50 transition-all">
-            <Filter className="w-4 h-4" />
-            Filter
+          <button className="px-8 py-5 bg-gray-900 text-white rounded-[24px] text-sm font-bold flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-gray-100">
+            <Filter className="w-5 h-5" />
+            Refine Results
           </button>
         </div>
 
-        {placements.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6">
-            {placements.map((job) => {
-              const application = applications[job.id];
+        {filteredPlacements.length > 0 ? (
+          <div className="grid grid-cols-1 gap-8">
+            {filteredPlacements.map((job) => {
+              const application = applications[job._id];
               return (
-                <div key={job.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    <div className="flex gap-6">
-                      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                        <Building2 className="w-8 h-8" />
+                <div key={job._id} className="bg-white p-10 rounded-[42px] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2 -translate-y-1/2"></div>
+                  
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
+                    <div className="flex flex-col md:flex-row gap-8">
+                      <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center text-blue-600 shrink-0 border border-gray-50 shadow-inner">
+                        <Building className="w-10 h-10" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-xl font-bold text-gray-900">{job.role}</h3>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${job.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                            {job.status === 'active' ? 'Applications Open' : 'Closed'}
-                          </span>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex items-center gap-4 mb-2">
+                             <h3 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">{job.role}</h3>
+                             <span className={`px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${job.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                              {job.status === 'active' ? 'Intake Open' : 'Archived'}
+                            </span>
+                          </div>
+                          <p className="text-gray-400 font-bold text-sm uppercase tracking-widest">{job.company}</p>
                         </div>
-                        <p className="text-gray-600 font-medium mb-4">{job.company}</p>
                         
-                        <div className="flex flex-wrap gap-6">
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                            <MapPin className="w-4 h-4 text-gray-300" />
+                        <div className="flex flex-wrap gap-8">
+                          <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                            <MapPin className="w-4 h-4 text-blue-600" />
                             {job.location}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                            <Clock className="w-4 h-4 text-gray-300" />
-                            Posted: {formatDate(job.postedAt)}
+                          <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            Posted: {new Date(job.postedAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       {application ? (
-                        <div className="px-6 py-3 bg-green-50 text-green-700 rounded-xl font-bold text-sm flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Applied ({application.status})
+                        <div className="px-8 py-4 bg-green-50 text-green-700 rounded-2xl font-black text-xs flex items-center gap-3 border border-green-100 uppercase tracking-widest">
+                          <CheckCircle2 className="w-5 h-5" />
+                          Authenticated ({application.status})
                         </div>
                       ) : (
                         <button 
                           onClick={() => handleApply(job)}
                           disabled={job.status !== 'active'}
-                          className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
+                          className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 disabled:opacity-50 uppercase tracking-widest"
                         >
-                          Apply Now
+                          Submit Dossier
                         </button>
                       )}
-                      <button className="px-8 py-3 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                        View Details <ExternalLink className="w-4 h-4" />
+                      <button className="px-10 py-4 bg-white border border-gray-100 text-gray-900 rounded-2xl font-black text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-3 uppercase tracking-widest shadow-sm">
+                        JD & Details <ExternalLink className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   
-                  {job.employabilityGuide && (
-                    <div className="mt-8 pt-8 border-t border-gray-50">
-                      <div className="bg-blue-50 p-4 rounded-2xl flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </div>
-                          <p className="text-sm font-medium text-blue-800">
-                            <strong>Employability Guide:</strong> {job.employabilityGuide}
-                          </p>
-                        </div>
-                        <button className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Download Guide</button>
-                      </div>
+                  {job.requirements && (
+                    <div className="mt-10 pt-10 border-t border-gray-50">
+                       <div className="flex flex-wrap gap-2">
+                          {job.requirements.split(',').map((req, i) => (
+                             <span key={i} className="px-4 py-2 bg-gray-50 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-gray-100">
+                                {req.trim()}
+                             </span>
+                          ))}
+                       </div>
                     </div>
                   )}
                 </div>
@@ -158,10 +179,12 @@ const Placements = () => {
             })}
           </div>
         ) : (
-          <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-            <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No placement opportunities</h3>
-            <p className="text-gray-500">Check back later for new job listings.</p>
+          <div className="text-center py-32 bg-white rounded-[48px] border-2 border-dashed border-gray-100 max-w-4xl mx-auto shadow-sm">
+            <div className="w-24 h-24 bg-blue-50 rounded-[32px] flex items-center justify-center text-blue-600 mx-auto mb-8">
+               <Briefcase className="w-12 h-12" />
+            </div>
+            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Intelligence Pipeline Empty</h3>
+            <p className="text-gray-400 font-medium max-w-md mx-auto text-lg leading-relaxed">No placement opportunities match your current filters. Broadcast your profile to remain in view of talent acquisition teams.</p>
           </div>
         )}
       </div>
@@ -169,4 +192,4 @@ const Placements = () => {
   );
 };
 
-export default Placements;
+export default StudentPlacements;

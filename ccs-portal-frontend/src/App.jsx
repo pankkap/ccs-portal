@@ -22,18 +22,23 @@ import PageManagement from './pages/Admin/PageManagement';
 import FacultyManagement from './pages/Admin/FacultyManagement';
 import AccessControl from './pages/Admin/AccessControl';
 import UnderConstruction from './pages/Admin/UnderConstruction';
+import CourseManagement from './pages/Admin/CourseManagement';
+import AdminELibraryManagement from './pages/Admin/ELibraryManagement';
 
 // Faculty Pages
 import FacultyDashboard from './pages/Faculty/FacultyDashboard';
 import CourseCreation from './pages/Faculty/CourseCreation';
 import AssessmentCreation from './pages/Faculty/AssessmentCreation';
+import FacultyMyCourses from './pages/Faculty/MyCourses';
+import FacultyProfile from './pages/Faculty/FacultyProfile';
+import ELibraryManagement from './pages/Faculty/ELibraryManagement';
 
 // Placement Pages
 import PlacementDashboard from './pages/Placement/PlacementDashboard';
 
 // Student Pages
 import StudentDashboard from './pages/Student/StudentDashboard';
-import MyCourses from './pages/Student/MyCourses';
+import StudentMyCourses from './pages/Student/MyCourses';
 import CourseView from './pages/Student/CourseView';
 import AssessmentView from './pages/Student/AssessmentView';
 import MockTests from './pages/Student/MockTests';
@@ -90,23 +95,27 @@ function App() {
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/faculty" element={<ProtectedRoute allowedRoles={['admin']}><FacultyManagement /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><UnderConstruction pageName="Students" /></ProtectedRoute>} />
-          <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><UnderConstruction pageName="Courses" /></ProtectedRoute>} />
+          <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><CourseManagement /></ProtectedRoute>} />
+          <Route path="/admin/elibrary" element={<ProtectedRoute allowedRoles={['admin']}><AdminELibraryManagement /></ProtectedRoute>} />
           <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />
           <Route path="/admin/pages" element={<ProtectedRoute allowedRoles={['admin', 'staff']}><PageManagement /></ProtectedRoute>} />
 
           {/* Faculty Routes */}
           <Route path="/faculty/dashboard" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyDashboard /></ProtectedRoute>} />
+          <Route path="/faculty/courses" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyMyCourses /></ProtectedRoute>} />
           <Route path="/faculty/course/new" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><CourseCreation /></ProtectedRoute>} />
           <Route path="/faculty/course/edit/:courseId" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><CourseCreation /></ProtectedRoute>} />
           <Route path="/faculty/assessment/new" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
           <Route path="/faculty/assessment/edit/:assessmentId" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
+          <Route path="/faculty/profile" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyProfile /></ProtectedRoute>} />
+          <Route path="/faculty/elibrary" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><ELibraryManagement /></ProtectedRoute>} />
 
           {/* Placement Routes */}
           <Route path="/placement" element={<ProtectedRoute allowedRoles={['placement', 'admin']}><PlacementDashboard /></ProtectedRoute>} />
 
           {/* Student Routes */}
           <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />
-          <Route path="/student/courses" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MyCourses /></ProtectedRoute>} />
+          <Route path="/student/courses" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentMyCourses /></ProtectedRoute>} />
           <Route path="/student/course/:courseId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><CourseView /></ProtectedRoute>} />
           <Route path="/student/assessment/:assessmentId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><AssessmentView /></ProtectedRoute>} />
           <Route path="/student/mock-tests" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockTests /></ProtectedRoute>} />

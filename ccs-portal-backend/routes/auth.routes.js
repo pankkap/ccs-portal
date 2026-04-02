@@ -26,6 +26,7 @@ const validateChangePassword = [
 router.post('/register', validateRegister, authController.register);
 router.post('/login', validateLogin, authController.login);
 router.post('/logout', authController.logout);
+router.get('/faculty', authController.getPublicFaculty); // Public website route
 
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { 

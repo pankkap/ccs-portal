@@ -12,7 +12,15 @@ dotenv.config();
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
 const pageRoutes = require('./routes/page.routes');
+const courseRoutes = require('./routes/course.routes');
+const uploadRoutes = require('./routes/upload.routes');
+const assessmentRoutes = require('./routes/assessment.routes');
+const enrollmentRoutes = require('./routes/enrollment.routes');
+const placementRoutes = require('./routes/placement.routes');
+const certificateRoutes = require('./routes/certificate.routes');
+const elibraryRoutes = require('./routes/elibrary.routes');
 const authController = require('./controllers/auth.controller');
+const path = require('path');
 
 // Initialize express app
 const app = express();
@@ -27,6 +35,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Passport Config
 require('./config/passport');
@@ -59,6 +70,13 @@ app.get('/auth/google/callback',
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/pages', pageRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/assessments', assessmentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/placements', placementRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/elibrary', elibraryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

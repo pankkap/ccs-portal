@@ -29,11 +29,15 @@ export const Sidebar = ({ role }) => {
       { icon: Shield, label: 'Access Control', path: '/admin/access-control' },
       { icon: Users, label: 'Faculty', path: '/admin/faculty' },
       { icon: GraduationCap, label: 'Students', path: '/admin/students' },
-      { icon: Book, label: 'Courses', path: '/admin/courses' },
+      { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
+      { icon: Book, label: 'E-Library', path: '/admin/elibrary' },
     ],
     faculty: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
-      { icon: BookOpen, label: 'Course Creation', path: '/faculty/course/new' },
+      { icon: Users, label: 'My Profile', path: '/faculty/profile' },
+      { icon: Book, label: 'E-Library', path: '/faculty/elibrary' },
+      { icon: BookOpen, label: 'My Courses', path: '/faculty/courses' },
+      { icon: Edit, label: 'Course Creation', path: '/faculty/course/new' },
       { icon: CheckSquare, label: 'Assessment Creation', path: '/faculty/assessment/new' },
     ],
     placement: [

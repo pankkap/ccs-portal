@@ -32,6 +32,34 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  showInFacultyPage: {
+    type: Boolean,
+    default: false
+  },
+  designation: {
+    type: String,
+    default: ''
+  },
+  specialization: {
+    type: String,
+    default: ''
+  },
+  experience: {
+    type: String,
+    default: ''
+  },
+  education: {
+    type: String,
+    default: ''
+  },
+  image: {
+    type: String,
+    default: ''
+  },
+  linkedin: {
+    type: String,
+    default: ''
+  },
   role: {
     type: String,
     enum: ['admin', 'staff', 'faculty', 'student', 'placement'],

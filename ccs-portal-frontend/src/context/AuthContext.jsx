@@ -8,33 +8,44 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const response = await authService.getProfile();
-        if (response.success) {
-          const userProfile = response.data.user;
-          setUser({ uid: userProfile._id || userProfile.id, email: userProfile.email });
-          setProfile(userProfile);
-          localStorage.setItem('profile', JSON.stringify(userProfile));
-        } else {
-          // If profile fetch fails, clear state
-          setUser(null);
-          setProfile(null);
-          localStorage.removeItem('profile');
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+  const initAuth = async () => {
+    try {
+      const response = await authService.getProfile();
+      if (response.success) {
+        const userProfile = response.data.user;
+        setUser({ uid: userProfile._id || userProfile.id, email: userProfile.email });
+        setProfile(userProfile);
+        localStorage.setItem('profile', JSON.stringify(userProfile));
+      } else {
         setUser(null);
         setProfile(null);
         localStorage.removeItem('profile');
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      setUser(null);
+      setProfile(null);
+      localStorage.removeItem('profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     initAuth();
   }, []);
+
+  const login = async (credentials) => {
+    const res = await authService.login(credentials);
+    if (res.success) {
+      await initAuth();
+    }
+    return res;
+  };
+
+  const refreshProfile = async () => {
+    await initAuth();
+  };
 
   // Firebase profile listener removed as we use backend API now.
 
@@ -48,6 +59,9 @@ export const AuthProvider = ({ children }) => {
     user,
     profile,
     loading,
+    login,
+    logout,
+    refreshProfile,
     isAdmin: profile?.role === 'admin',
     isFaculty: profile?.role === 'faculty',
     isPlacement: profile?.role === 'placement',

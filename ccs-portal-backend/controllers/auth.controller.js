@@ -61,7 +61,10 @@ const register = async (req, res) => {
           email: user.email,
           name: user.name,
           role: user.role,
-          status: user.status
+          status: user.status,
+          image: user.image,
+          designation: user.designation,
+          department: user.department
         }
       }
     });
@@ -132,6 +135,9 @@ const login = async (req, res) => {
           name: user.name,
           role: user.role,
           status: user.status,
+          image: user.image,
+          designation: user.designation,
+          department: user.department,
           lastLogin: user.lastLogin
         }
       }
@@ -179,17 +185,35 @@ const getProfile = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { 
+      name, email, designation, specialization, experience, 
+      education, image, linkedin, department 
+    } = req.body;
+    
+    console.log('Update Profile Request Body:', req.body);
+    
     const updates = {};
 
     if (name) updates.name = name;
     if (email) updates.email = email;
+    if (designation !== undefined) updates.designation = designation;
+    if (specialization !== undefined) updates.specialization = specialization;
+    if (experience !== undefined) updates.experience = experience;
+    if (education !== undefined) updates.education = education;
+    if (image !== undefined) {
+      console.log('Setting image update to:', image);
+      updates.image = image;
+    }
+    if (linkedin !== undefined) updates.linkedin = linkedin;
+    if (department !== undefined) updates.department = department;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      updates,
+      { $set: updates },
       { new: true, runValidators: true }
     ).select('-password');
+
+    console.log('Updated user record:', { id: user._id, image: user.image });
 
     res.status(200).json({
       success: true,
@@ -286,6 +310,29 @@ const googleSSOCallback = async (req, res) => {
   }
 };
 
+/**
+ * Get all users marked as visible for the public Faculty page
+ */
+const getPublicFaculty = async (req, res) => {
+  try {
+    const faculty = await User.find({ showInFacultyPage: true })
+      .select('name designation specialization experience education image linkedin department order')
+      .sort({ order: 1, name: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: { faculty }
+    });
+  } catch (error) {
+    console.error('Get public faculty error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching faculty information.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -293,5 +340,6 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
-  googleSSOCallback
+  googleSSOCallback,
+  getPublicFaculty
 };

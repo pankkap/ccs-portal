@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { Briefcase, Users, CheckCircle, Clock, Plus, ArrowRight, Edit3, Trash2, MapPin, Building2 } from 'lucide-react';
+import { Briefcase, Users, CheckCircle, Clock, Plus, ArrowRight, Edit3, Trash2, MapPin, Building2, Loader2, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatDate } from '../../lib/utils';
+import placementService from '../../services/placementService';
+import { toast } from 'sonner';
 
 const PlacementDashboard = () => {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const [placements, setPlacements] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,14 +15,18 @@ const PlacementDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const placementsSnap = await getDocs(collection(db, 'placements'));
-        const placementsData = placementsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPlacements(placementsData);
+        const placementsRes = await placementService.getAllPlacements();
+        if (placementsRes.success) {
+          setPlacements(placementsRes.data.placements || []);
+        }
 
-        const applicationsSnap = await getDocs(collection(db, 'applications'));
-        setApplications(applicationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const applicationsRes = await placementService.getApplications();
+        if (applicationsRes.success) {
+          setApplications(applicationsRes.data.applications || []);
+        }
       } catch (error) {
         console.error("Error fetching placement dashboard data:", error);
+        toast.error("Cloud synchronization failed");
       } finally {
         setLoading(false);
       }
@@ -33,160 +36,187 @@ const PlacementDashboard = () => {
   }, []);
 
   const stats = [
-    { label: 'Job Openings', value: placements.length, icon: Briefcase, color: 'blue' },
-    { label: 'Total Applications', value: applications.length, icon: Users, color: 'green' },
+    { label: 'Active Drives', value: placements.filter(p => p.status === 'active').length, icon: Briefcase, color: 'blue' },
+    { label: 'Applications', value: applications.length, icon: Users, color: 'green' },
     { label: 'Shortlisted', value: applications.filter(a => a.status === 'shortlisted').length, icon: CheckCircle, color: 'purple' },
-    { label: 'Pending Review', value: applications.filter(a => a.status === 'applied').length, icon: Clock, color: 'orange' },
+    { label: 'Pending', value: applications.filter(a => a.status === 'applied').length, icon: Clock, color: 'orange' },
   ];
+
+  if (loading) return (
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Synchronizing Career Data...</p>
+      </div>
+    </Layout>
+  );
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+      <div className="max-w-7xl mx-auto pb-20">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Placement Portal</h1>
-            <p className="text-gray-500 mt-2">Welcome, {profile?.name}! Manage job drives and recruitment.</p>
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Placement Intelligence</h1>
+            <p className="text-gray-500 mt-2 text-lg">Welcome back, {profile?.name}. Manage your active recruitment pipelines.</p>
           </div>
-          <Link to="/placement/jobs/new" className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-            <Plus className="w-5 h-5" />
-            Add New Job
+          <Link to="/placement/jobs/new" className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 group">
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+            Launch New Opening
           </Link>
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {stats.map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl bg-${stat.color}-50 flex items-center justify-center text-${stat.color}-600`}>
-                <stat.icon className="w-6 h-6" />
+            <div key={i} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm flex items-center gap-6 hover:shadow-lg transition-all border-b-4 border-b-transparent hover:border-b-blue-500">
+              <div className={`w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-blue-600`}>
+                <stat.icon className="w-7 h-7" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Active Job Openings */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-10">
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Active Job Openings</h2>
-                <Link to="/placement/jobs" className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View All <ArrowRight className="w-4 h-4" />
-                </Link>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">Career Pipelines</h2>
+                <div className="flex items-center gap-4">
+                   <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="text" placeholder="Search roles..." className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48" />
+                   </div>
+                </div>
               </div>
 
               {placements.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6">
                   {placements.map((job) => (
-                    <div key={job.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex gap-4">
-                          <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
-                            <Building2 className="w-7 h-7" />
+                    <div key={job._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex gap-6">
+                          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
+                            <Building2 className="w-8 h-8" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900 text-lg">{job.role}</h3>
-                            <p className="text-sm font-medium text-gray-600">{job.company}</p>
+                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{job.role}</h3>
+                            <p className="text-gray-500 font-bold text-sm mt-1">{job.company}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <Edit3 className="w-4 h-4" />
+                        <div className="flex items-center gap-3">
+                          <button className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
+                            <Edit3 className="w-5 h-5" />
                           </button>
-                          <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 className="w-4 h-4" />
+                          <button className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all">
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-4 mb-6">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                          <MapPin className="w-3.5 h-3.5" />
+                      <div className="flex flex-wrap gap-6 my-8 pt-8 border-t border-gray-50">
+                        <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                          <MapPin className="w-4 h-4" />
                           {job.location}
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                          <Clock className="w-3.5 h-3.5" />
-                          Posted: {formatDate(job.postedAt)}
+                        <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                          <Clock className="w-4 h-4" />
+                          Posted: {new Date(job.postedAt).toLocaleDateString()}
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${job.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                          {job.status === 'active' ? 'Applications Open' : 'Closed'}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${job.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                            {job.status === 'active' ? 'Applications Open' : 'Closed'}
-                          </span>
-                        </div>
-                        <Link 
-                          to={`/placement/jobs/${job.id}/applications`}
-                          className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      <div className="flex items-center justify-between">
+                         <div className="flex -space-x-3">
+                            {[1,2,3].map(i => (
+                               <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center">
+                                  <Users className="w-4 h-4 text-gray-300" />
+                               </div>
+                            ))}
+                            <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                               +{applications.filter(a => a.placementId?._id === job._id).length}
+                            </div>
+                         </div>
+                         <Link 
+                          to={`/placement/jobs/${job._id}/applications`}
+                          className="px-6 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all flex items-center gap-2"
                         >
-                          View Applications <ArrowRight className="w-4 h-4" />
+                          Review Applications
+                          <ArrowRight className="w-4 h-4" />
                         </Link>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-gray-50 border border-dashed border-gray-200 p-12 rounded-3xl text-center">
-                  <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">No job openings posted</h3>
-                  <p className="text-gray-500 mb-6">Start by posting your first job opening for students.</p>
-                  <Link to="/placement/jobs/new" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all">
-                    Post Job
+                <div className="bg-white border-2 border-dashed border-gray-100 p-20 rounded-[40px] text-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-6">
+                    <Briefcase className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">No active job drives</h3>
+                  <p className="text-gray-400 mb-10 max-w-sm mx-auto font-medium">Launch your first recruitment campaign to connect our students with professional opportunities.</p>
+                  <Link to="/placement/jobs/new" className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
+                    Host New Drive
                   </Link>
                 </div>
               )}
             </section>
           </div>
 
-          {/* Recent Applications Sidebar */}
-          <div className="space-y-8">
-            <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Recent Applications</h3>
-                <Link to="/placement/applications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View All</Link>
+          <div className="space-y-10">
+            <section className="bg-white p-8 rounded-[38px] border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-4">
+                <h3 className="text-xl font-bold text-gray-900">Live Intake</h3>
+                <Link to="/placement/applications" className="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest">Global Feed</Link>
               </div>
               
               {applications.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {applications.slice(0, 5).map((app) => (
-                    <div key={app.id} className="p-4 border border-gray-50 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div key={app._id} className="p-5 bg-gray-50/50 border border-gray-50 rounded-2xl hover:border-blue-100 transition-all group">
                       <h4 className="text-sm font-bold text-gray-900">{app.studentName}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5">Applied for {app.placementId}</p>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          app.status === 'applied' ? 'bg-blue-50 text-blue-700' :
-                          app.status === 'shortlisted' ? 'bg-green-50 text-green-700' :
-                          app.status === 'rejected' ? 'bg-red-50 text-red-700' :
-                          'bg-purple-50 text-purple-700'
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Applying for {app.placementId?.role || 'Job opening'}</p>
+                      <div className="flex items-center justify-between mt-5">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest ${
+                          app.status === 'applied' ? 'bg-blue-50 text-blue-600' :
+                          app.status === 'shortlisted' ? 'bg-green-50 text-green-600' :
+                          app.status === 'rejected' ? 'bg-red-50 text-red-600' :
+                          'bg-purple-100 text-purple-700'
                         }`}>
                           {app.status}
                         </span>
-                        <span className="text-[10px] text-gray-400">{formatDate(app.appliedAt)}</span>
+                        <span className="text-[10px] text-gray-300 font-bold">{new Date(app.appliedAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10">
-                  <Users className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500">No applications yet.</p>
+                <div className="text-center py-16">
+                  <Users className="w-12 h-12 text-gray-100 mx-auto mb-4" />
+                  <p className="text-sm text-gray-400 font-bold tracking-widest uppercase">Intake pipeline empty</p>
                 </div>
               )}
             </section>
 
-            <section className="bg-gray-900 rounded-3xl p-8 text-white">
-              <h3 className="text-xl font-bold mb-4">Employability Guides</h3>
-              <p className="text-gray-400 text-sm mb-6">
-                Distribute preparation resources and guides to help students secure employment.
-              </p>
-              <button className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
-                Manage Guides
-              </button>
+            <section className="bg-gradient-to-br from-indigo-900 to-black rounded-[40px] p-10 text-white relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500 rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/2"></div>
+               <div className="relative z-10">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
+                     <Filter className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 tracking-tight">Advanced Filtering</h3>
+                  <p className="text-gray-400 text-sm mb-8 leading-relaxed font-medium">
+                     Sort through thousands of student profiles based on CGPA, skills, and certifications.
+                  </p>
+                  <button className="w-full py-4 bg-white text-gray-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-2xl">
+                     Candidate Search
+                  </button>
+               </div>
             </section>
           </div>
         </div>

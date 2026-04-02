@@ -16,6 +16,7 @@ const DEFAULT_DEPARTMENTS = [
   'Mathematics',
   'Physics',
   'Chemistry',
+  'Placement'
 ];
 
 const FACULTY_ROLES = [
@@ -27,7 +28,7 @@ const FACULTY_ROLES = [
 const FacultyManagement = () => {
   const [faculty, setFaculty] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Drag and drop state
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -37,7 +38,19 @@ const FacultyManagement = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', email: '', department: '', customDepartment: '', role: 'faculty', password: ''
+    name: '',
+    email: '',
+    department: '',
+    customDepartment: '',
+    role: 'faculty',
+    password: '',
+    showInFacultyPage: true,
+    designation: '',
+    specialization: '',
+    experience: '',
+    education: '',
+    image: '',
+    linkedin: ''
   });
 
   useEffect(() => {
@@ -74,7 +87,7 @@ const FacultyManagement = () => {
       ...item,
       order: index
     }));
-    
+
     setFaculty(updatedOrderList);
 
     // Persist to backend
@@ -82,7 +95,7 @@ const FacultyManagement = () => {
       const payload = updatedOrderList.map(f => ({ id: f._id, order: f.order }));
       await facultyService.reorderFaculty(payload);
       toast.success("Order saved successfully");
-    } catch(err) {
+    } catch (err) {
       toast.error("Error saving new order");
       fetchFaculty(); // revert if failed
     }
@@ -94,7 +107,21 @@ const FacultyManagement = () => {
   const openCreateModal = () => {
     setIsEditing(false);
     setSelectedFaculty(null);
-    setFormData({ name: '', email: '', department: '', customDepartment: '', role: 'faculty', password: '' });
+    setFormData({
+      name: '',
+      email: '',
+      department: '',
+      customDepartment: '',
+      role: 'faculty',
+      password: '',
+      showInFacultyPage: true,
+      designation: '',
+      specialization: '',
+      experience: '',
+      education: '',
+      image: '',
+      linkedin: ''
+    });
     setShowModal(true);
   };
 
@@ -108,7 +135,14 @@ const FacultyManagement = () => {
       department: isCustomDept ? 'Other' : (member.department || ''),
       customDepartment: isCustomDept ? member.department : '',
       role: member.role || 'faculty',
-      password: ''
+      password: '',
+      showInFacultyPage: member.showInFacultyPage ?? false,
+      designation: member.designation || '',
+      specialization: member.specialization || '',
+      experience: member.experience || '',
+      education: member.education || '',
+      image: member.image || '',
+      linkedin: member.linkedin || ''
     });
     setShowModal(true);
   };
@@ -122,7 +156,7 @@ const FacultyManagement = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let password = "";
     for (let i = 0; i < 10; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setFormData(prev => ({ ...prev, password }));
   };
@@ -132,21 +166,31 @@ const FacultyManagement = () => {
     try {
       const finalDepartment = formData.department === 'Other' ? formData.customDepartment : formData.department;
       const payload = {
-        name: formData.name, email: formData.email, role: formData.role, department: finalDepartment
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        department: finalDepartment,
+        showInFacultyPage: formData.showInFacultyPage,
+        designation: formData.designation,
+        specialization: formData.specialization,
+        experience: formData.experience,
+        education: formData.education,
+        image: formData.image,
+        linkedin: formData.linkedin
       };
 
       if (!isEditing) {
         if (!formData.password) return toast.error("Password is required for new faculty");
         payload.password = formData.password;
         payload.order = faculty.length; // Append dynamically at end
-        
+
         await facultyService.createFaculty(payload);
         toast.success("Faculty added successfully");
       } else {
         await facultyService.updateFaculty(selectedFaculty._id, payload);
         toast.success("Faculty updated successfully");
       }
-      
+
       setShowModal(false);
       fetchFaculty();
     } catch (error) {
@@ -179,14 +223,14 @@ const FacultyManagement = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-        
+
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1>
             <p className="text-gray-500 mt-2">Add, edit, delete, and seamlessly drag-and-drop to reorder faculty profiles.</p>
           </div>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={openCreateModal}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 transition-all shadow-sm"
             >
@@ -204,7 +248,7 @@ const FacultyManagement = () => {
             <div className="py-12 text-center text-gray-400 bg-white rounded-xl shadow-sm border border-gray-100">No faculty members found.</div>
           ) : (
             faculty.map((member, index) => (
-              <div 
+              <div
                 key={member._id}
                 draggable
                 onDragStart={() => (dragItem.current = index)}
@@ -221,7 +265,12 @@ const FacultyManagement = () => {
                     {getInitials(member.name)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-[15px]">{member.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900 text-[15px]">{member.name}</h3>
+                      {!member.showInFacultyPage && (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded tracking-wider">Hidden from Website</span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 capitalize mt-0.5">
                       {member.role === 'admin' ? 'System Administrator' : (FACULTY_ROLES.find(r => r.value === member.role)?.label || member.role)}
                       {member.department ? ` - ${member.department}` : ''}
@@ -288,6 +337,51 @@ const FacultyManagement = () => {
                     <select name="role" required value={formData.role} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500">
                       {FACULTY_ROLES.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
                     </select>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 pt-4 mt-2">
+                  <h4 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">Website Profile Details</h4>
+
+                  <div className="flex items-center justify-between mb-4 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                    <div>
+                      <span className="block text-sm font-bold text-blue-900">Show on Public Website</span>
+                      <span className="text-xs text-blue-600">If enabled, this member will appear on the /faculty page.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, showInFacultyPage: !prev.showInFacultyPage }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.showInFacultyPage ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.showInFacultyPage ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Display Designation</label>
+                      <input type="text" name="designation" value={formData.designation} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. Senior Technical Trainer" />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Specialization</label>
+                      <input type="text" name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. Full Stack Dev" />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Experience</label>
+                      <input type="text" name="experience" value={formData.experience} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. 10+ Years" />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Education</label>
+                      <input type="text" name="education" value={formData.education} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. M.Tech" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Profile Image URL</label>
+                      <input type="text" name="image" value={formData.image} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="https://unsplash.com/..." />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">LinkedIn Profile</label>
+                      <input type="text" name="linkedin" value={formData.linkedin} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="https://linkedin.com/in/..." />
+                    </div>
                   </div>
                 </div>
 

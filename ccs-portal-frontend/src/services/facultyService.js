@@ -4,30 +4,20 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// The browser will automatically send cookies with withCredentials: true.
+// No request interceptor needed for manual token injection.
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('profile');
+      console.warn('Unauthorized access in FacultyService. Redirecting to login.');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -65,6 +55,16 @@ const facultyService = {
     }
   },
 
+  updateProfile: async (facultyData) => {
+    try {
+      const response = await api.put('/auth/profile', facultyData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating faculty profile:', error);
+      throw error;
+    }
+  },
+
   deleteFaculty: async (id) => {
     try {
       const response = await api.delete(`/admin/faculty/${id}`);
@@ -91,6 +91,17 @@ const facultyService = {
       return response.data;
     } catch (error) {
       console.error('Error reordering faculty:', error);
+      throw error;
+    }
+  },
+
+  getPublicFaculty: async () => {
+    try {
+      // Hits the public route that doesn't require authentication
+      const response = await axios.get(`${API_BASE_URL}/auth/faculty`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching public faculty:', error);
       throw error;
     }
   }

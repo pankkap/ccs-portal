@@ -3,6 +3,8 @@ const router = express.Router();
 const { body } = require('express-validator');
 const User = require('../models/User.model');
 const Page = require('../models/Page.model');
+const Course = require('../models/Course.model');
+const ELibrary = require('../models/ELibrary.model');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 /**
@@ -10,31 +12,28 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
  */
 router.get('/dashboard', authenticate, authorize('admin'), async (req, res) => {
   try {
-    // Get user statistics
-    const userStats = await User.aggregate([
-      { $group: { _id: '$role', count: { $sum: 1 } } }
+    const User = require('../models/User.model');
+    const Course = require('../models/Course.model');
+    const Placement = require('../models/Placement.model');
+    const Enrollment = require('../models/Enrollment.model');
+
+    // Get statistics in parallel
+    const [
+      userStats,
+      courseCount,
+      placementCount,
+      enrollmentCount,
+      recentUsers
+    ] = await Promise.all([
+      User.aggregate([{ $group: { _id: '$role', count: { $sum: 1 } } }]),
+      Course.countDocuments(),
+      Placement.countDocuments(),
+      Enrollment.countDocuments(),
+      User.find().select('-password').sort({ createdAt: -1 }).limit(5)
     ]);
 
-    // Get page statistics
-    const pageStats = await Page.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-
-    // Get recent activities
-    const recentPages = await Page.find()
-      .populate('author', 'name email')
-      .populate('lastEditedBy', 'name email')
-      .sort({ updatedAt: -1 })
-      .limit(5);
-
-    const recentUsers = await User.find()
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // Calculate totals
+    // Calculate total users
     const totalUsers = userStats.reduce((sum, stat) => sum + stat.count, 0);
-    const totalPages = pageStats.reduce((sum, stat) => sum + stat.count, 0);
 
     res.status(200).json({
       success: true,
@@ -44,13 +43,11 @@ router.get('/dashboard', authenticate, authorize('admin'), async (req, res) => {
             total: totalUsers,
             byRole: userStats
           },
-          pages: {
-            total: totalPages,
-            byStatus: pageStats
-          }
+          courses: courseCount,
+          placements: placementCount,
+          enrollments: enrollmentCount
         },
         recentActivities: {
-          pages: recentPages,
           users: recentUsers
         }
       }
@@ -308,17 +305,13 @@ router.post('/users', authenticate, authorize('admin'), [
  */
 router.get('/settings', authenticate, authorize('admin'), async (req, res) => {
   try {
-    // In a real application, you would fetch from a Settings model
-    const settings = {
-      siteName: 'CCS Training Portal',
-      siteDescription: 'Comprehensive training and placement portal',
-      maintenanceMode: false,
-      allowRegistrations: true,
-      defaultUserRole: 'student',
-      emailNotifications: true,
-      maxPagesPerUser: 50,
-      seoOptimization: true
-    };
+    const Settings = require('../models/Settings.model');
+    let settings = await Settings.findOne({ key: 'system_governance' });
+    
+    if (!settings) {
+      settings = new Settings({ key: 'system_governance' });
+      await settings.save();
+    }
 
     res.status(200).json({
       success: true,
@@ -339,15 +332,19 @@ router.get('/settings', authenticate, authorize('admin'), async (req, res) => {
  */
 router.put('/settings', authenticate, authorize('admin'), async (req, res) => {
   try {
+    const Settings = require('../models/Settings.model');
     const updates = req.body;
     
-    // In a real application, you would save to a Settings model
-    // For now, we'll just return the updated settings
+    const settings = await Settings.findOneAndUpdate(
+      { key: 'system_governance' },
+      { $set: updates },
+      { new: true, upsert: true, runValidators: true }
+    );
     
     res.status(200).json({
       success: true,
       message: 'Settings updated successfully.',
-      data: { settings: updates }
+      data: { settings }
     });
   } catch (error) {
     console.error('Update settings error:', error);
@@ -419,8 +416,14 @@ router.post('/faculty', authenticate, authorize('admin'), [
   body('name').notEmpty().trim(),
   body('role').isIn(['admin', 'faculty', 'placement'])
 ], async (req, res) => {
+  const { validationResult } = require('express-validator');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: errors.array()[0].msg, errors: errors.array() });
+  }
+
   try {
-    const { email, password, name, role, department, status } = req.body;
+    const { email, password, name, role, department, status, showInFacultyPage } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -436,7 +439,15 @@ router.post('/faculty', authenticate, authorize('admin'), [
       name,
       role: role || 'faculty',
       department: department || '',
-      status: status || 'active'
+      status: status || 'active',
+      // Respect the value from body, or default to true for 'faculty' role
+      showInFacultyPage: showInFacultyPage !== undefined ? showInFacultyPage : (role === 'faculty'),
+      designation: req.body.designation || '',
+      specialization: req.body.specialization || '',
+      experience: req.body.experience || '',
+      education: req.body.education || '',
+      image: req.body.image || '',
+      linkedin: req.body.linkedin || ''
     });
 
     await user.save();
@@ -463,7 +474,10 @@ router.post('/faculty', authenticate, authorize('admin'), [
  */
 router.put('/faculty/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, email, role, department, status } = req.body;
+    const { 
+      name, email, role, department, status, 
+      showInFacultyPage, designation, specialization, experience, education, image, linkedin 
+    } = req.body;
     const updates = {};
 
     if (name) updates.name = name;
@@ -471,6 +485,15 @@ router.put('/faculty/:id', authenticate, authorize('admin'), async (req, res) =>
     if (role) updates.role = role;
     if (department !== undefined) updates.department = department;
     if (status) updates.status = status;
+    
+    // Faculty Profile Updates
+    if (showInFacultyPage !== undefined) updates.showInFacultyPage = showInFacultyPage;
+    if (designation !== undefined) updates.designation = designation;
+    if (specialization !== undefined) updates.specialization = specialization;
+    if (experience !== undefined) updates.experience = experience;
+    if (education !== undefined) updates.education = education;
+    if (image !== undefined) updates.image = image;
+    if (linkedin !== undefined) updates.linkedin = linkedin;
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -604,6 +627,130 @@ router.patch('/faculty/reorder', authenticate, authorize('admin'), async (req, r
     res.status(500).json({
       success: false,
       message: 'Error reordering faculty.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * ==========================================
+ * COURSE MANAGEMENT ROUTES
+ * ==========================================
+ */
+
+/**
+ * Get all courses (admin only)
+ */
+router.get('/courses', authenticate, authorize('admin', 'staff'), async (req, res) => {
+  try {
+    const courses = await Course.find()
+      .sort({ order: 1, createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: { courses }
+    });
+  } catch (error) {
+    console.error('Get admin courses error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching courses.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Bulk reorder courses (admin only)
+ */
+router.patch('/courses/reorder', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { items } = req.body; // Expects [{ id, order }]
+    
+    if (!Array.isArray(items)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Items must be an array.'
+      });
+    }
+
+    const updatePromises = items.map(item => 
+      Course.findByIdAndUpdate(item.id, { order: item.order })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.status(200).json({
+      success: true,
+      message: 'Courses reordered successfully.'
+    });
+  } catch (error) {
+    console.error('Reorder courses error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reordering courses.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * ==========================================
+ * E-LIBRARY MANAGEMENT ROUTES
+ * ==========================================
+ */
+
+/**
+ * Get all e-library resources (admin only)
+ */
+router.get('/elibrary', authenticate, authorize('admin', 'staff'), async (req, res) => {
+  try {
+    const resources = await ELibrary.find()
+      .sort({ order: 1, createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: { resources }
+    });
+  } catch (error) {
+    console.error('Get admin elibrary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching e-library resources.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Bulk reorder e-library resources (admin only)
+ */
+router.patch('/elibrary/reorder', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { items } = req.body; // Expects [{ id, order }]
+    
+    if (!Array.isArray(items)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Items must be an array.'
+      });
+    }
+
+    const updatePromises = items.map(item => 
+      ELibrary.findByIdAndUpdate(item.id, { order: item.order })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.status(200).json({
+      success: true,
+      message: 'E-Library reordered successfully.'
+    });
+  } catch (error) {
+    console.error('Reorder elibrary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reordering e-library.',
       error: error.message
     });
   }

@@ -1,49 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { BookOpen, CheckCircle, Award, Clock, ArrowRight, PlayCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, Award, Clock, ArrowRight, PlayCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatDate } from '../../lib/utils';
+import enrollmentService from '../../services/enrollmentService';
+import courseService from '../../services/courseService';
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [enrollments, setEnrollments] = useState([]);
-  const [recentCourses, setRecentCourses] = useState([]);
-  const [certificates, setCertificates] = useState([]);
+  const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchData = async () => {
       try {
         // Fetch enrollments
-        const enrollmentsQuery = query(
-          collection(db, 'enrollments'),
-          where('studentId', '==', user.uid),
-          limit(5)
-        );
-        const enrollmentsSnap = await getDocs(enrollmentsQuery);
-        const enrollmentsData = enrollmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setEnrollments(enrollmentsData);
+        const enrollRes = await enrollmentService.getMyEnrollments();
+        if (enrollRes.success) {
+          setEnrollments(enrollRes.data.enrollments || []);
+        }
 
-        // Fetch recent certificates
-        const certsQuery = query(
-          collection(db, 'certificates'),
-          where('studentId', '==', user.uid),
-          orderBy('issuedAt', 'desc'),
-          limit(3)
-        );
-        const certsSnap = await getDocs(certsQuery);
-        setCertificates(certsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-        // Fetch some available courses if not many enrollments
-        if (enrollmentsData.length < 3) {
-          const coursesQuery = query(collection(db, 'courses'), where('published', '==', true), limit(4));
-          const coursesSnap = await getDocs(coursesQuery);
-          setRecentCourses(coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // Fetch recommended courses
+        const coursesRes = await courseService.getAllCourses();
+        if (coursesRes.success) {
+          // Filter out courses already enrolled in
+          const enrolledCourseIds = enrollRes.data.enrollments.map(e => e.courseId._id);
+          const available = coursesRes.data.courses.filter(c => !enrolledCourseIds.includes(c._id));
+          setRecommendedCourses(available.slice(0, 4));
         }
       } catch (error) {
         console.error("Error fetching student dashboard data:", error);
@@ -53,123 +37,148 @@ const StudentDashboard = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, []);
 
   const stats = [
     { label: 'Enrolled Courses', value: enrollments.length, icon: BookOpen, color: 'blue' },
     { label: 'In Progress', value: enrollments.filter(e => e.status === 'in-progress').length, icon: Clock, color: 'orange' },
     { label: 'Completed', value: enrollments.filter(e => e.status === 'completed').length, icon: CheckCircle, color: 'green' },
-    { label: 'Certificates', value: certificates.length, icon: Award, color: 'purple' },
+    { label: 'Certificates', value: enrollments.filter(e => e.status === 'completed').length, icon: Award, color: 'purple' },
   ];
+
+  if (loading) return (
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Personalizing your campus dashboard...</p>
+      </div>
+    </Layout>
+  );
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-          <p className="text-gray-500 mt-2">Welcome back! Continue your learning journey.</p>
+      <div className="max-w-7xl mx-auto pb-20">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Student Success Hub</h1>
+            <p className="text-gray-500 mt-2 text-lg">Welcome back, {profile?.name}. Ready for today's session?</p>
+          </div>
+          <Link to="/student/courses" className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-gray-100 group">
+            Explore All Courses
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {stats.map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl bg-${stat.color}-50 flex items-center justify-center text-${stat.color}-600`}>
-                <stat.icon className="w-6 h-6" />
+            <div key={i} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm flex items-center gap-6 hover:shadow-lg transition-all border-b-4 border-b-transparent hover:border-b-blue-500">
+              <div className={`w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-blue-600`}>
+                <stat.icon className="w-7 h-7" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Main Content - Continue Learning */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-10">
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Continue Learning</h2>
-                <Link to="/student/courses" className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View All <ArrowRight className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">Continue Learning</h2>
+                <Link to="/student/courses" className="text-sm font-bold text-blue-600 hover:text-blue-700 border-b-2 border-blue-100 hover:border-blue-600 transition-all py-1">
+                  My Enrolled Courses
                 </Link>
               </div>
 
               {enrollments.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {enrollments.map((enrollment) => (
-                    <div key={enrollment.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex gap-4">
-                          <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                            <PlayCircle className="w-8 h-8" />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 text-lg">Course Title Placeholder</h3>
-                            <p className="text-sm text-gray-500">Last accessed: {formatDate(enrollment.enrolledAt)}</p>
-                          </div>
+                    <div key={enrollment._id} className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                      <div className="flex flex-col md:flex-row gap-8">
+                        <div className="w-full md:w-48 aspect-video md:aspect-square bg-gray-50 rounded-2xl overflow-hidden shrink-0">
+                          {enrollment.courseId.thumbnail ? (
+                            <img src={enrollment.courseId.thumbnail} alt={enrollment.courseId.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-200">
+                              <PlayCircle className="w-12 h-12" />
+                            </div>
+                          )}
                         </div>
-                        <Link 
-                          to={`/student/courses/${enrollment.courseId}`}
-                          className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors"
-                        >
-                          Resume
-                        </Link>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                          <span>Progress</span>
-                          <span>{enrollment.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-600 transition-all duration-500" 
-                            style={{ width: `${enrollment.progress}%` }}
-                          ></div>
+                        <div className="flex-1 space-y-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">{enrollment.courseId.title}</h3>
+                              <p className="text-sm text-gray-500 line-clamp-2">{enrollment.courseId.description}</p>
+                            </div>
+                            <Link 
+                              to={`/student/course/${enrollment.courseId._id}`}
+                              className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 shrink-0"
+                            >
+                              Resume Learning
+                            </Link>
+                          </div>
+                          
+                          <div className="space-y-3 pt-4 border-t border-gray-50">
+                            <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                              <span>Mastery Progress</span>
+                              <span className="text-blue-600">{enrollment.progress}% Complete</span>
+                            </div>
+                            <div className="w-full h-3 bg-gray-50 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-blue-600 transition-all duration-1000 shadow-sm" 
+                                style={{ width: `${enrollment.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-blue-50 border border-blue-100 p-10 rounded-3xl text-center">
-                  <BookOpen className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">No active enrollments</h3>
-                  <p className="text-gray-600 mb-6">Explore our course catalog and start learning today.</p>
-                  <Link to="/student/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all">
-                    Browse Courses
+                <div className="bg-white border-2 border-dashed border-gray-100 p-20 rounded-[40px] text-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-6">
+                    <BookOpen className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No active enrollments</h3>
+                  <p className="text-gray-400 max-w-sm mx-auto mb-10">Start your professional transformation by enrolling in one of our expert-led courses.</p>
+                  <Link to="/student/courses" className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
+                    Explore Catalog
                   </Link>
                 </div>
               )}
             </section>
 
-            {recentCourses.length > 0 && (
+            {recommendedCourses.length > 0 && (
               <section>
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Recommended for You</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {recentCourses.map((course) => (
-                    <div key={course.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
-                      <div className="h-40 bg-gray-200 relative">
+                <h2 className="text-2xl font-bold text-gray-900 mb-8">Recommended for Excellence</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {recommendedCourses.map((course) => (
+                    <div key={course._id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300">
+                      <div className="h-48 bg-gray-50 relative overflow-hidden">
                         {course.thumbnail ? (
-                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <BookOpen className="w-12 h-12" />
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <BookOpen className="w-16 h-16" />
                           </div>
                         )}
-                        <div className="absolute top-4 right-4 px-3 py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-bold uppercase tracking-wider text-gray-900">
+                        <div className="absolute top-4 right-4 px-3 py-1.5 bg-white/90 backdrop-blur rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-900 shadow-lg">
                           {course.duration}
                         </div>
                       </div>
-                      <div className="p-6">
-                        <h3 className="font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">{course.title}</h3>
-                        <p className="text-sm text-gray-500 mb-6 line-clamp-2">{course.description}</p>
+                      <div className="p-8">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors">{course.title}</h3>
+                        <p className="text-xs text-gray-400 font-medium mb-6 uppercase tracking-wider">{course.skills}</p>
                         <Link 
-                          to={`/student/courses/${course.id}`}
-                          className="w-full py-2.5 border border-blue-600 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                          to={`/student/course/${course._id}`}
+                          className="w-full py-3 border border-blue-600 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
                         >
-                          View Details
+                          Unlock Course Details
                         </Link>
                       </div>
                     </div>
@@ -179,46 +188,41 @@ const StudentDashboard = () => {
             )}
           </div>
 
-          {/* Sidebar Content - Certificates & Notifications */}
-          <div className="space-y-8">
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Recent Certificates</h2>
-                <Link to="/student/certificates" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                  View All
-                </Link>
-              </div>
-
-              {certificates.length > 0 ? (
-                <div className="space-y-4">
-                  {certificates.map((cert) => (
-                    <div key={cert.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-                      <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center text-yellow-600">
-                        <Award className="w-6 h-6" />
+          {/* Sidebar Content */}
+          <div className="space-y-10">
+            <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900 mb-8">Certification Vault</h3>
+              
+              {enrollments.filter(e => e.status === 'completed').length > 0 ? (
+                <div className="space-y-6">
+                  {enrollments.filter(e => e.status === 'completed').map((enrollment) => (
+                    <div key={enrollment._id} className="p-4 rounded-2xl border border-gray-50 bg-gray-50/30 flex items-center gap-4 hover:border-yellow-200 transition-all">
+                      <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 shrink-0 shadow-sm">
+                        <Award className="w-7 h-7" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-gray-900 truncate">{cert.courseTitle}</h4>
-                        <p className="text-xs text-gray-500">Issued: {formatDate(cert.issuedAt)}</p>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-gray-900 truncate">{enrollment.courseId.title}</h4>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Verified Expert</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-gray-50 border border-dashed border-gray-200 p-8 rounded-2xl text-center">
-                  <Award className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Complete courses to earn certificates.</p>
+                <div className="bg-gray-50 border border-dashed border-gray-200 p-10 rounded-[32px] text-center">
+                  <Award className="w-10 h-10 text-gray-200 mx-auto mb-4" />
+                  <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">No certificates earned yet</p>
                 </div>
               )}
             </section>
 
-            <section className="bg-gray-900 rounded-3xl p-8 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2"></div>
-              <h3 className="text-xl font-bold mb-4 relative z-10">Placement Drive</h3>
-              <p className="text-gray-400 text-sm mb-6 relative z-10">
-                New job openings are available in the placement portal. Check them out and apply now!
+            <section className="bg-gray-900 rounded-[40px] p-10 text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600 rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+              <h3 className="text-2xl font-bold mb-4 relative z-10">Placement Drive</h3>
+              <p className="text-gray-400 text-sm mb-8 leading-relaxed relative z-10">
+                Exclusive career opportunities are waiting for verified learners. Complete your curriculum to qualify.
               </p>
-              <Link to="/student/placements" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-xl font-bold hover:bg-gray-100 transition-all relative z-10">
-                View Jobs <ArrowRight className="w-4 h-4" />
+              <Link to="/student/placements" className="inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-2xl font-bold hover:bg-blue-50 transition-all relative z-10 shadow-xl">
+                Career Portal <ArrowRight className="w-5 h-5" />
               </Link>
             </section>
           </div>

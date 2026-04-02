@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, addDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import { Camera, ShieldAlert, Clock, ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Layout } from '../../components/Layout';
+import { Camera, ShieldAlert, Clock, ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateId } from '../../lib/utils';
+import assessmentService from '../../services/assessmentService';
+import enrollmentService from '../../services/enrollmentService';
 
 const AssessmentView = () => {
   const { courseId, assessmentId } = useParams();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [assessment, setAssessment] = useState(null);
@@ -27,40 +27,33 @@ const AssessmentView = () => {
   const [isSuspended, setIsSuspended] = useState(false);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user || !courseId || !assessmentId) return;
-
     const fetchData = async () => {
       try {
-        const assessmentDoc = await getDoc(doc(db, 'courses', courseId, 'assessments', assessmentId));
-        if (!assessmentDoc.exists()) {
-          toast.error("Assessment not found");
-          navigate(`/student/courses/${courseId}`);
-          return;
+        const assessmentRes = await assessmentService.getAssessmentById(assessmentId);
+        if (assessmentRes.success) {
+          const data = assessmentRes.data.assessment;
+          setAssessment(data);
+          setTimeLeft(data.timeLimit * 60);
         }
-        const assessmentData = { id: assessmentDoc.id, ...assessmentDoc.data() };
-        setAssessment(assessmentData);
-        setTimeLeft(assessmentData.timeLimit * 60);
 
-        const enrollmentsQuery = query(
-          collection(db, 'enrollments'),
-          where('studentId', '==', user.uid),
-          where('courseId', '==', courseId)
-        );
-        const enrollmentsSnap = await getDocs(enrollmentsQuery);
-        if (!enrollmentsSnap.empty) {
-          setEnrollment({ id: enrollmentsSnap.docs[0].id, ...enrollmentsSnap.docs[0].data() });
+        const enrollRes = await enrollmentService.getEnrollmentByCourseId(courseId);
+        if (enrollRes.success) {
+          setEnrollment(enrollRes.data.enrollment);
         }
       } catch (error) {
         console.error("Error fetching assessment:", error);
+        toast.error("Failed to authenticate assessment session");
+        navigate(`/student/course/${courseId}`);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user, courseId, assessmentId, navigate]);
+  }, [courseId, assessmentId, navigate]);
 
   // Camera Verification
   const startCamera = async () => {
@@ -72,7 +65,7 @@ const AssessmentView = () => {
       }
     } catch (error) {
       console.error("Camera error:", error);
-      toast.error("Camera access is required for proctored assessments.");
+      toast.error("Biometric verification is required for proctored sessions.");
     }
   };
 
@@ -93,9 +86,9 @@ const AssessmentView = () => {
           const next = prev + 1;
           if (next >= 5) {
             setIsSuspended(true);
-            toast.error("Test suspended due to multiple tab switches.");
+            toast.error("Proctoring Protocol: Session suspended due to window violation.");
           } else {
-            toast.warning(`Warning: Tab switch detected! (${next}/5)`);
+            toast.warning(`Security Alert: Tab switch detected! (${next}/5 warnings)`);
           }
           return next;
         });
@@ -125,11 +118,12 @@ const AssessmentView = () => {
   }, [step, isSuspended, timeLeft]);
 
   const handleStartTest = () => {
-    if (!cameraStream) {
-      toast.error("Please verify your identity with the camera first.");
+    if (!cameraStream && assessment?.proctored) {
+      toast.error("Biometric verification failed. Check camera access.");
       return;
     }
     setStep('test');
+    // Lock mouse scroll or other proctoring if needed
   };
 
   const handleAnswer = (questionId, optionIndex) => {
@@ -137,52 +131,35 @@ const AssessmentView = () => {
   };
 
   const handleSubmit = async () => {
-    if (!assessment || !user || !enrollment) return;
+    if (!assessment || submitting) return;
 
-    let correctCount = 0;
-    assessment.questions?.forEach(q => {
-      if (answers[q.id] === q.correctAnswer) {
-        correctCount++;
-      }
-    });
-
-    const totalQuestions = assessment.questions?.length || 1;
-    const finalScore = Math.round((correctCount / totalQuestions) * 100);
-    const isPassed = finalScore >= assessment.passingScore;
-    
-    setScore(finalScore);
-    setPassed(isPassed);
-    setStep('result');
-    stopCamera();
-
+    setSubmitting(true);
     try {
-      // Update enrollment status if passed
-      if (isPassed && enrollment.status !== 'completed') {
-        await updateDoc(doc(db, 'enrollments', enrollment.id), {
-          status: 'completed',
-          progress: 100
-        });
+      const res = await assessmentService.submitAssessment(assessment._id, {
+        answers,
+        courseId
+      });
 
-        // Generate Certificate
-        const certId = generateId();
-        const certificate = {
-          id: certId,
-          studentId: user.uid,
-          studentName: profile?.name || 'Student',
-          courseId: assessment.courseId,
-          courseTitle: 'Course Title Placeholder', // In real app, fetch this
-          issuedAt: new Date().toISOString(),
-          certificateNumber: `CERT-${certId.substring(0, 8).toUpperCase()}`
-        };
-        await addDoc(collection(db, 'certificates'), certificate);
-        toast.success("Congratulations! You've earned a certificate.");
+      if (res.success) {
+        setScore(res.data.score);
+        setPassed(res.data.passed);
+        setStep('result');
+        stopCamera();
       }
     } catch (error) {
-      console.error("Error submitting assessment:", error);
+      toast.error("Fatal error during result transmission");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+      <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Initializing Proctoring Environment...</p>
+    </div>
+  );
+
   if (!assessment) return null;
 
   const formatTime = (seconds) => {
@@ -193,15 +170,15 @@ const AssessmentView = () => {
 
   if (isSuspended) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 text-center border border-red-100">
-          <ShieldAlert className="w-20 h-20 text-red-600 mx-auto mb-6 animate-pulse" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Assessment Suspended</h2>
-          <p className="text-gray-500 mb-8 leading-relaxed">
-            Your test has been suspended due to unusual activity (multiple tab switches). Please contact your faculty to reset your attempt.
+      <div className="min-h-screen bg-black flex items-center justify-center p-8">
+        <div className="max-w-md w-full bg-white rounded-[40px] shadow-2xl p-12 text-center border border-red-100">
+          <ShieldAlert className="w-20 h-20 text-red-600 mx-auto mb-8 animate-pulse" />
+          <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Access Suspended</h2>
+          <p className="text-gray-400 mb-10 leading-relaxed font-medium">
+            Multiple window violations detected. Your attempt has been logged and invalidated. Contact administration for session audit.
           </p>
-          <Link to={`/student/courses/${courseId}`} className="inline-flex items-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all">
-            Back to Course
+          <Link to={`/student/course/${courseId}`} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all">
+            Exit Environment
           </Link>
         </div>
       </div>
@@ -211,52 +188,80 @@ const AssessmentView = () => {
   if (step === 'verification') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-          <div className="p-10 text-center">
-            <ShieldCheck className="w-16 h-16 text-blue-600 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Camera Verification Required</h2>
-            <p className="text-gray-500 mb-10">Please confirm your identity to start the proctored assessment.</p>
+        <div className="max-w-3xl w-full bg-white rounded-[48px] shadow-2xl overflow-hidden border border-gray-100">
+          <div className="p-12 text-center">
+            <h2 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">Security Protocol</h2>
+            <p className="text-gray-400 mb-12 font-medium">Verify your identity to unlock the {assessment.title} gateway.</p>
             
-            <div className="relative w-full aspect-video bg-gray-900 rounded-2xl overflow-hidden mb-10 border-4 border-gray-100 shadow-inner">
-              {!cameraStream ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6">
-                  <Camera className="w-12 h-12 mb-4 opacity-50" />
-                  <button 
-                    onClick={startCamera}
-                    className="px-6 py-3 bg-blue-600 rounded-xl font-bold hover:bg-blue-700 transition-all"
-                  >
-                    Enable Camera
-                  </button>
-                </div>
-              ) : (
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+               <div className="relative aspect-square md:aspect-auto bg-gray-900 rounded-[32px] overflow-hidden border-4 border-gray-100 shadow-inner group">
+                {!cameraStream ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-8">
+                    <Camera className="w-16 h-16 mb-6 opacity-30 group-hover:scale-110 transition-transform" />
+                    <button 
+                      onClick={startCamera}
+                      className="px-8 py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-900/40"
+                    >
+                      Activate Biometrics
+                    </button>
+                  </div>
+                ) : (
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="w-full h-full object-cover grayscale brightness-110 contrast-125"
+                  />
+                )}
+                {cameraStream && (
+                   <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 bg-green-500/80 backdrop-blur rounded-full">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Live Bio-Feed</span>
+                   </div>
+                )}
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to={`/student/courses/${courseId}`} className="px-8 py-3 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all">
-                Cancel
-              </Link>
-              <button 
-                onClick={handleStartTest}
-                disabled={!cameraStream}
-                className="px-10 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-xl shadow-blue-100"
-              >
-                Confirm & Start Test
-              </button>
+              <div className="flex flex-col justify-center text-left space-y-8">
+                 <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900">Session Guidelines</h3>
+                    <ul className="space-y-3">
+                       {[
+                          "Remain in the center of the frame",
+                          "Background must be neutral and lit",
+                          "Tab switching will terminate session",
+                          "Mobile devices are strictly prohibited"
+                       ].map((rule, i) => (
+                          <li key={i} className="flex items-start gap-3 text-sm text-gray-500 font-medium leading-tight">
+                             <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                                <ShieldCheck className="w-3 h-3 text-blue-600" />
+                             </div>
+                             {rule}
+                          </li>
+                       ))}
+                    </ul>
+                 </div>
+
+                 <div className="flex flex-col gap-4">
+                    <button 
+                      onClick={handleStartTest}
+                      disabled={!cameraStream && assessment.proctored}
+                      className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-2xl disabled:opacity-20"
+                    >
+                      Authenticate & Proceed
+                    </button>
+                    <Link to={`/student/course/${courseId}`} className="w-full py-4 text-gray-400 font-bold text-xs uppercase tracking-widest text-center hover:text-gray-600 transition-colors">
+                      Abort Operation
+                    </Link>
+                 </div>
+              </div>
             </div>
           </div>
-          <div className="bg-blue-50 p-6 border-t border-blue-100">
-            <div className="flex gap-3">
-              <ShieldAlert className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <p className="text-xs text-blue-800 leading-relaxed">
-                <strong>Proctoring Active:</strong> This test is monitored. Tab switching, application switching, or closing the camera will result in immediate suspension.
+          <div className="bg-red-50 p-8 border-t border-red-100/50">
+            <div className="flex gap-4">
+              <ShieldAlert className="w-6 h-6 text-red-600 flex-shrink-0" />
+              <p className="text-xs text-red-900 leading-relaxed font-bold uppercase tracking-tight">
+                AI Proctoring Active: This session utilizes real-time facial analysis and viewport monitoring. Any violation will lead to immediate automated suspension with no warnings.
               </p>
             </div>
           </div>
@@ -268,45 +273,45 @@ const AssessmentView = () => {
   if (step === 'result') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="max-w-lg w-full bg-white rounded-3xl shadow-2xl p-10 text-center border border-gray-100">
+        <div className="max-w-xl w-full bg-white rounded-[48px] shadow-2xl p-14 text-center border border-gray-100">
           {passed ? (
-            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-12 h-12" />
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-green-100">
+              <CheckCircle2 className="w-14 h-14" />
             </div>
           ) : (
-            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-12 h-12" />
+            <div className="w-24 h-24 bg-red-100 text-red-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-red-100">
+              <AlertTriangle className="w-14 h-14" />
             </div>
           )}
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {passed ? 'Congratulations!' : 'Assessment Completed'}
+          <h2 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">
+            {passed ? 'Certification Earned' : 'Curriculum Incomplete'}
           </h2>
-          <p className="text-gray-500 mb-8">
+          <p className="text-gray-400 mb-12 font-medium text-lg leading-relaxed">
             {passed 
-              ? `You have successfully passed the assessment with a score of ${score}%.` 
-              : `You scored ${score}%. Unfortunately, you need ${assessment.passingScore}% to pass.`}
+              ? `Outstanding performance. Your verified certificate has been added to your vault.` 
+              : `Total competency not achieved. Review the course material and attempt the final audit again.`}
           </p>
 
-          <div className="grid grid-cols-2 gap-4 mb-10">
-            <div className="p-6 bg-gray-50 rounded-2xl">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Your Score</p>
-              <p className={`text-3xl font-black ${passed ? 'text-green-600' : 'text-red-600'}`}>{score}%</p>
+          <div className="grid grid-cols-2 gap-6 mb-12">
+            <div className="p-8 bg-gray-50 rounded-[32px] border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Achieved Score</p>
+              <p className={`text-4xl font-black transition-all ${passed ? 'text-green-600' : 'text-red-500'}`}>{score}%</p>
             </div>
-            <div className="p-6 bg-gray-50 rounded-2xl">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Required</p>
-              <p className="text-3xl font-black text-gray-900">{assessment.passingScore}%</p>
+            <div className="p-8 bg-gray-50 rounded-[32px] border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Competency Bar</p>
+              <p className="text-4xl font-black text-gray-900">{assessment.passingScore}%</p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {passed && (
-              <Link to="/student/certificates" className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
-                View Certificate
+              <Link to="/student/certificates" className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100">
+                Claim Verified Certificate
               </Link>
             )}
-            <Link to={`/student/courses/${courseId}`} className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all">
-              Back to Course
+            <Link to={`/student/course/${courseId}`} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+              Back to Curriculum
             </Link>
           </div>
         </div>
@@ -319,123 +324,134 @@ const AssessmentView = () => {
   if (!currentQuestion) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Test Header */}
-      <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-20">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+      <header className="h-24 bg-white border-b border-gray-100 flex items-center justify-between px-10 md:px-20 sticky top-0 z-20 shadow-sm backdrop-blur-md bg-white/90">
+        <div className="flex items-center gap-6">
+          <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center text-white font-black shadow-xl">
             CCS
           </div>
-          <div>
-            <h1 className="font-bold text-gray-900">{assessment.title}</h1>
-            <p className="text-xs text-gray-500">Question {currentQuestionIndex + 1} of {assessment.questions?.length || 0}</p>
+          <div className="hidden sm:block">
+            <h1 className="font-black text-gray-900 uppercase tracking-tight text-sm">{assessment.title}</h1>
+            <div className="flex items-center gap-2 mt-0.5">
+               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Question {currentQuestionIndex + 1} of {assessment.questions?.length || 0}</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 px-4 py-2 bg-red-50 text-red-700 rounded-xl border border-red-100">
-            <Clock className="w-5 h-5" />
-            <span className="font-mono font-bold text-lg">{formatTime(timeLeft)}</span>
+        <div className="flex items-center gap-10">
+          <div className={`flex items-center gap-4 px-6 py-3 rounded-2xl border transition-all ${timeLeft < 300 ? 'bg-red-50 border-red-100 text-red-600 animate-pulse' : 'bg-gray-50 border-gray-100'}`}>
+            <Clock className="w-6 h-6" />
+            <span className="font-mono font-black text-2xl tracking-tighter">{formatTime(timeLeft)}</span>
           </div>
           
-          <div className="hidden sm:flex items-center gap-3 pl-8 border-l border-gray-200">
+          <div className="hidden lg:flex items-center gap-4 pl-10 border-l border-gray-100">
             <div className="text-right">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Proctoring Active</p>
-              <p className="text-sm font-bold text-green-600 flex items-center gap-1 justify-end">
-                <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
-                Monitoring Live
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Security Link</p>
+              <p className="text-xs font-black text-green-600 flex items-center gap-2 justify-end uppercase mt-1">
+                <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse shadow-sm shadow-green-400"></span>
+                ACTIVE
               </p>
             </div>
-            <div className="w-12 h-12 bg-gray-900 rounded-xl overflow-hidden border-2 border-white shadow-lg">
+            <div className="w-14 h-14 bg-black rounded-[20px] overflow-hidden border border-white/20 shadow-2xl ring-4 ring-gray-50">
                <video 
                   ref={videoRef} 
                   autoPlay 
                   playsInline 
                   muted 
-                  className="w-full h-full object-cover grayscale"
+                  className="w-full h-full object-cover grayscale scale-110"
                 />
             </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto p-8 md:p-12">
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-14 lg:p-20">
+        <div className="bg-white rounded-[48px] shadow-2xl border border-gray-100 overflow-hidden group">
           {/* Progress Bar */}
-          <div className="w-full h-1.5 bg-gray-100">
+          <div className="w-full h-2 bg-gray-50">
             <div 
-              className="h-full bg-blue-600 transition-all duration-300" 
+              className="h-full bg-blue-600 transition-all duration-1000 shadow-sm shadow-blue-500" 
               style={{ width: `${((currentQuestionIndex + 1) / (assessment.questions?.length || 1)) * 100}%` }}
             ></div>
           </div>
 
-          <div className="p-10 md:p-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-10 leading-relaxed">
-              {currentQuestion.text}
-            </h2>
+          <div className="p-12 md:p-20 lg:p-24">
+             <div className="flex gap-6 mb-12">
+                <div className="w-12 h-12 bg-gray-900 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-xl shrink-0">
+                  {currentQuestionIndex + 1}
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+                  {currentQuestion.text}
+                </h2>
+             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {currentQuestion.options.map((option, i) => (
                 <button
                   key={i}
-                  onClick={() => handleAnswer(currentQuestion.id, i)}
-                  className={`w-full p-6 text-left rounded-2xl border-2 transition-all flex items-center justify-between group ${
-                    answers[currentQuestion.id] === i 
-                      ? 'border-blue-600 bg-blue-50 text-blue-900' 
-                      : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50 text-gray-700'
+                  onClick={() => handleAnswer(currentQuestion._id, i)}
+                  className={`w-full p-8 text-left rounded-3xl border-2 transition-all flex items-center justify-between group/opt ${
+                    answers[currentQuestion._id] === i 
+                      ? 'border-blue-600 bg-blue-50/50 text-blue-900 scale-[1.02] shadow-xl shadow-blue-50' 
+                      : 'border-gray-50 hover:border-blue-200 hover:bg-gray-50/50 text-gray-600'
                   }`}
                 >
-                  <span className="font-medium">{option}</span>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    answers[currentQuestion.id] === i 
+                  <span className="font-bold text-lg">{option}</span>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                    answers[currentQuestion._id] === i 
                       ? 'border-blue-600 bg-blue-600' 
-                      : 'border-gray-200 group-hover:border-blue-300'
+                      : 'border-gray-200 group-hover/opt:border-blue-300'
                   }`}>
-                    {answers[currentQuestion.id] === i && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                    {answers[currentQuestion._id] === i && <div className="w-3 h-3 bg-white rounded-full"></div>}
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="p-8 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+          <div className="p-10 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
             <button
               onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
               disabled={currentQuestionIndex === 0}
-              className="px-6 py-3 text-sm font-bold text-gray-500 hover:text-gray-900 disabled:opacity-30 transition-colors"
+              className="px-8 py-4 text-xs font-black text-gray-400 hover:text-gray-900 disabled:opacity-20 transition-colors uppercase tracking-widest"
             >
-              Previous
+              Back
             </button>
 
             {currentQuestionIndex === assessment.questions.length - 1 ? (
               <button
                 onClick={handleSubmit}
-                className="px-10 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+                disabled={submitting}
+                className="px-12 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 flex items-center gap-3 disabled:opacity-50"
               >
-                Submit Test
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
+                Finalize & Submit
               </button>
             ) : (
               <button
                 onClick={() => setCurrentQuestionIndex(prev => Math.min(assessment.questions.length - 1, prev + 1))}
-                className="px-10 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all flex items-center gap-2"
+                className="px-12 py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all flex items-center gap-3 shadow-2xl"
               >
-                Next Question <ArrowRight className="w-4 h-4" />
+                Continue <ArrowRight className="w-5 h-5" />
               </button>
             )}
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <div className="flex gap-2">
-            {assessment.questions?.map((_, i) => (
+        <div className="mt-12 flex items-center justify-center">
+          <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
+            {assessment.questions?.map((q, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentQuestionIndex(i)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  i === currentQuestionIndex ? 'bg-blue-600 w-8' : 
-                  answers[assessment.questions?.[i].id || ''] !== undefined ? 'bg-blue-200' : 'bg-gray-200'
+                className={`w-10 h-10 rounded-xl transition-all font-black text-[10px] flex items-center justify-center border ${
+                  i === currentQuestionIndex ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-125' : 
+                  answers[q._id] !== undefined ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-gray-300 border-gray-100'
                 }`}
-              ></button>
+              >
+                {i + 1}
+              </button>
             ))}
           </div>
         </div>

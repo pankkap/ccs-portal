@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { BookOpen, PlayCircle } from 'lucide-react';
+import { BookOpen, PlayCircle, Loader2, Sparkles, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import enrollmentService from '../../services/enrollmentService';
+import courseService from '../../services/courseService';
 
-const MyCourses = () => {
+const StudentMyCourses = () => {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState([]);
   const [availableCourses, setAvailableCourses] = useState([]);
@@ -15,118 +15,126 @@ const MyCourses = () => {
   const [activeTab, setActiveTab] = useState('my');
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchData = async () => {
       try {
         // Fetch enrollments
-        const enrollmentsQuery = query(
-          collection(db, 'enrollments'),
-          where('studentId', '==', user.uid)
-        );
-        const enrollmentsSnap = await getDocs(enrollmentsQuery);
-        const enrollmentsData = enrollmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const enrollRes = await enrollmentService.getMyEnrollments();
+        const enrollmentsData = enrollRes.success ? enrollRes.data.enrollments : [];
         setEnrollments(enrollmentsData);
 
         // Fetch all published courses
-        const coursesQuery = query(collection(db, 'courses'), where('published', '==', true));
-        const coursesSnap = await getDocs(coursesQuery);
-        const coursesData = coursesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const coursesRes = await courseService.getAllCourses();
+        const coursesData = coursesRes.success ? coursesRes.data.courses : [];
         
         // Filter out already enrolled courses for "Available" tab
-        const enrolledCourseIds = new Set(enrollmentsData.map(e => e.courseId));
-        setAvailableCourses(coursesData.filter(c => !enrolledCourseIds.has(c.id)));
+        const enrolledCourseIds = new Set(enrollmentsData.map(e => e.courseId._id));
+        setAvailableCourses(coursesData.filter(c => !enrolledCourseIds.has(c._id)));
 
       } catch (error) {
         console.error("Error fetching courses data:", error);
+        toast.error("Failed to load course data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user]);
+  }, []);
 
   const handleEnroll = async (course) => {
-    if (!user) return;
-    
     try {
-      const enrollment = {
-        studentId: user.uid,
-        courseId: course.id,
-        progress: 0,
-        completedModules: [],
-        status: 'in-progress',
-        enrolledAt: new Date().toISOString()
-      };
-      
-      const docRef = await addDoc(collection(db, 'enrollments'), enrollment);
-      setEnrollments([...enrollments, { id: docRef.id, ...enrollment }]);
-      setAvailableCourses(availableCourses.filter(c => c.id !== course.id));
-      toast.success(`Enrolled in ${course.title}!`);
-      setActiveTab('my');
+      const res = await enrollmentService.enrollInCourse(course._id);
+      if (res.success) {
+        // Find the full course object for the new enrollment state
+        const newEnrollment = {
+          ...res.data.enrollment,
+          courseId: course // Use the course object we already have
+        };
+        
+        setEnrollments([newEnrollment, ...enrollments]);
+        setAvailableCourses(availableCourses.filter(c => c._id !== course._id));
+        toast.success(`Welcome to ${course.title}!`);
+        setActiveTab('my');
+      }
     } catch (error) {
-      console.error("Enrollment error:", error);
-      toast.error("Failed to enroll in course.");
+      toast.error(error.message || "Enrollment failed");
     }
   };
 
+  if (loading) return (
+    <Layout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Curating your learning path...</p>
+      </div>
+    </Layout>
+  );
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
-          <p className="text-gray-500 mt-2">Explore and manage your learning journey.</p>
-        </header>
-
-        <div className="flex items-center justify-between mb-8 border-b border-gray-200">
-          <div className="flex gap-8">
+      <div className="max-w-7xl mx-auto pb-20">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Academic Catalog</h1>
+            <p className="text-gray-500 mt-2 text-lg">Manage your active enrollments or discover new frontiers.</p>
+          </div>
+          <div className="flex p-1.5 bg-gray-100 rounded-2xl w-fit">
             <button 
               onClick={() => setActiveTab('my')}
-              className={`pb-4 text-sm font-bold transition-all relative ${activeTab === 'my' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'my' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              My Courses ({enrollments.length})
-              {activeTab === 'my' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-full"></div>}
+              Enrolled ({enrollments.length})
             </button>
             <button 
               onClick={() => setActiveTab('available')}
-              className={`pb-4 text-sm font-bold transition-all relative ${activeTab === 'available' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'available' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              Available Courses ({availableCourses.length})
-              {activeTab === 'available' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-600 rounded-full"></div>}
+              Explore ({availableCourses.length})
             </button>
           </div>
-        </div>
+        </header>
 
         {activeTab === 'my' ? (
           enrollments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {enrollments.map((enrollment) => (
-                <div key={enrollment.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
-                  <div className="h-40 bg-blue-600 relative flex items-center justify-center text-white">
-                    <BookOpen className="w-16 h-16 opacity-20 absolute" />
-                    <PlayCircle className="w-12 h-12 relative z-10 group-hover:scale-110 transition-transform" />
+                <div key={enrollment._id} className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300 flex flex-col">
+                  <div className="h-48 bg-gray-50 relative overflow-hidden shrink-0">
+                    {enrollment.courseId.thumbnail ? (
+                      <img src={enrollment.courseId.thumbnail} alt={enrollment.courseId.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-200">
+                        <PlayCircle className="w-16 h-16" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <PlayCircle className="w-14 h-14 text-white drop-shadow-2xl" />
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-1">Course ID: {enrollment.courseId}</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase">
-                          <span>Progress</span>
-                          <span>{enrollment.progress}%</span>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{enrollment.courseId.title}</h3>
+                      <p className="text-sm text-gray-500 mb-6 line-clamp-2 min-h-[40px]">{enrollment.courseId.description}</p>
+                    </div>
+
+                    <div className="space-y-6 pt-4 border-t border-gray-50">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                          <span>Mastery</span>
+                          <span className="text-blue-600">{enrollment.progress}%</span>
                         </div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-gray-50 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-blue-600 transition-all duration-500" 
+                            className="h-full bg-blue-600 transition-all duration-1000 shadow-sm" 
                             style={{ width: `${enrollment.progress}%` }}
                           ></div>
                         </div>
                       </div>
                       <Link 
-                        to={`/student/courses/${enrollment.courseId}`}
-                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                        to={`/student/course/${enrollment.courseId._id}`}
+                        className="w-full py-4 bg-gray-900 text-white rounded-2xl text-sm font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl shadow-gray-100"
                       >
-                        Continue Learning
+                        Continue Curriculum
                       </Link>
                     </div>
                   </div>
@@ -134,15 +142,18 @@ const MyCourses = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No courses enrolled</h3>
-              <p className="text-gray-500 mb-8">You haven't enrolled in any courses yet.</p>
+            <div className="bg-white border-2 border-dashed border-gray-100 p-24 rounded-[48px] text-center max-w-2xl mx-auto">
+              <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-8 shadow-inner shadow-blue-100">
+                <BookOpen className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">No active enrollments</h3>
+              <p className="text-gray-400 mb-10 leading-relaxed font-medium">You haven't added any courses to your curriculum yet. Discover professional programs in the explore tab.</p>
               <button 
                 onClick={() => setActiveTab('available')}
-                className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+                className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 flex items-center gap-2 mx-auto"
               >
-                Browse Available Courses
+                <Sparkles className="w-5 h-5" />
+                Browse Catalog
               </button>
             </div>
           )
@@ -150,30 +161,35 @@ const MyCourses = () => {
           availableCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {availableCourses.map((course) => (
-                <div key={course.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
-                  <div className="h-48 bg-gray-200 relative">
+                <div key={course._id} className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300">
+                  <div className="h-48 bg-gray-50 relative overflow-hidden">
                     {course.thumbnail ? (
-                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <div className="w-full h-full flex items-center justify-center text-gray-200">
                         <BookOpen className="w-16 h-16" />
                       </div>
                     )}
-                    <div className="absolute top-4 right-4 px-3 py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-bold uppercase tracking-wider text-gray-900">
+                    <div className="absolute top-4 right-4 px-4 py-2 bg-white/95 backdrop-blur rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-900 shadow-xl border border-white/50">
                       {course.duration}
                     </div>
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold uppercase">{course.skills}</span>
+                  <div className="p-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-bold uppercase tracking-widest">{course.skills}</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">{course.title}</h3>
-                    <p className="text-sm text-gray-500 mb-6 line-clamp-2">{course.description}</p>
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                      <span className="text-xs text-gray-500 font-medium">By {course.facultyName}</span>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors tracking-tight">{course.title}</h3>
+                    <p className="text-sm text-gray-500 mb-8 line-clamp-2 min-h-[40px] leading-relaxed">{course.description}</p>
+                    <div className="flex items-center justify-between pt-6 border-t border-gray-50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                           <span className="text-[10px] font-bold text-gray-400 capitalize">{course.facultyName?.charAt(0)}</span>
+                        </div>
+                        <span className="text-xs text-gray-500 font-bold">Prof. {course.facultyName}</span>
+                      </div>
                       <button 
                         onClick={() => handleEnroll(course)}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-all"
+                        className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
                       >
                         Enroll Now
                       </button>
@@ -183,10 +199,10 @@ const MyCourses = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No available courses</h3>
-              <p className="text-gray-500">Check back later for new courses.</p>
+            <div className="text-center py-24 bg-gray-50/50 rounded-[48px] border-2 border-dashed border-gray-100 max-w-2xl mx-auto">
+              <Filter className="w-16 h-16 text-gray-200 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Catalog Under Maintenance</h3>
+              <p className="text-gray-400 font-medium tracking-tight">Our academic team is curating new professional curriculums. Check back shortly.</p>
             </div>
           )
         )}
@@ -195,4 +211,4 @@ const MyCourses = () => {
   );
 };
 
-export default MyCourses;
+export default StudentMyCourses;
