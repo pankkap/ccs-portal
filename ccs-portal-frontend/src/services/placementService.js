@@ -1,93 +1,37 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const API_URL = 'http://localhost:5000/api/placements';
 
 const placementService = {
-  /**
-   * Get all active job openings (Student view)
-   */
-  getPlacements: async () => {
-    try {
-      const response = await api.get('/placements');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching placements:', error);
-      throw error.response?.data || { message: 'Failed to fetch placements' };
-    }
+  // Get all active placements (Student view)
+  getActivePlacements: async () => {
+    const res = await axios.get(API_URL, { withCredentials: true });
+    return res.data;
   },
 
-  /**
-   * Get all job openings (Staff/Admin view)
-   */
+  // Get all placements (Admin/Placement view)
   getAllPlacements: async () => {
-    try {
-      const response = await api.get('/placements/all');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching all placements:', error);
-      throw error.response?.data || { message: 'Failed to fetch job openings' };
-    }
+    const res = await axios.get(`${API_URL}/all`, { withCredentials: true });
+    return res.data;
   },
 
-  /**
-   * Create a new job opening
-   */
-  createPlacement: async (jobData) => {
-    try {
-      const response = await api.post('/placements', jobData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating placement:', error);
-      throw error.response?.data || { message: 'Failed to post job' };
-    }
+  // Create a new drive
+  createDrive: async (driveData) => {
+    const res = await axios.post(API_URL, driveData, { withCredentials: true });
+    return res.data;
   },
 
-  /**
-   * Get all applications (Staff/Admin view)
-   */
-  getApplications: async () => {
-    try {
-      const response = await api.get('/placements/applications');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      throw error.response?.data || { message: 'Failed to fetch applications' };
-    }
+  // Update a drive
+  updateDrive: async (id, driveData) => {
+    const res = await axios.put(`${API_URL}/${id}`, driveData, { withCredentials: true });
+    return res.data;
   },
 
-  /**
-   * Apply for a job
-   */
-  applyForJob: async (applicationData) => {
-    try {
-      const response = await api.post('/placements/apply', applicationData);
-      return response.data;
-    } catch (error) {
-      console.error('Error applying for job:', error);
-      throw error.response?.data || { message: 'Failed to submit application' };
-    }
-  },
-
-  /**
-   * Update application status
-   */
-  updateApplicationStatus: async (id, status) => {
-    try {
-      const response = await api.put(`/placements/applications/${id}`, { status });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating status:', error);
-      throw error.response?.data || { message: 'Failed to update application' };
-    }
-  },
+  // Delete a drive
+  deleteDrive: async (id) => {
+    const res = await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
+    return res.data;
+  }
 };
 
 export default placementService;

@@ -134,4 +134,38 @@ router.put('/applications/:id', authenticate, authorize('placement', 'admin'), a
   }
 });
 
+/**
+ * @route PUT /api/placements/:id
+ * @desc Update a job opening
+ * @access Private (Placement/Admin)
+ */
+router.put('/:id', authenticate, authorize('placement', 'admin'), async (req, res) => {
+  try {
+    const placement = await Placement.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    res.json({ success: true, data: { placement } });
+  } catch (error) {
+    console.error('Update placement error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update job' });
+  }
+});
+
+/**
+ * @route DELETE /api/placements/:id
+ * @desc Delete a job opening
+ * @access Private (Placement/Admin)
+ */
+router.delete('/:id', authenticate, authorize('placement', 'admin'), async (req, res) => {
+  try {
+    await Placement.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Job deleted successfully' });
+  } catch (error) {
+    console.error('Delete placement error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete job' });
+  }
+});
+
 module.exports = router;

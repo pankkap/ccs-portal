@@ -24,6 +24,7 @@ import AccessControl from './pages/Admin/AccessControl';
 import UnderConstruction from './pages/Admin/UnderConstruction';
 import CourseManagement from './pages/Admin/CourseManagement';
 import AdminELibraryManagement from './pages/Admin/ELibraryManagement';
+import SchoolManagement from './pages/Admin/SchoolManagement';
 
 // Faculty Pages
 import FacultyDashboard from './pages/Faculty/FacultyDashboard';
@@ -38,6 +39,8 @@ import TestBuilder from './pages/Faculty/TestBuilder';
 import FacultyMockTests from './pages/Faculty/MockTests';
 
 // Placement Pages
+import PlacementManagement from './pages/Placement/PlacementManagement';
+import CreatePlacementDrive from './pages/Placement/CreatePlacementDrive';
 import PlacementDashboard from './pages/Placement/PlacementDashboard';
 
 // Student Pages
@@ -102,6 +105,7 @@ function App() {
           <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><CourseManagement /></ProtectedRoute>} />
           <Route path="/admin/elibrary" element={<ProtectedRoute allowedRoles={['admin']}><AdminELibraryManagement /></ProtectedRoute>} />
           <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />
+          <Route path="/admin/schools" element={<ProtectedRoute allowedRoles={['admin']}><SchoolManagement /></ProtectedRoute>} />
           <Route path="/admin/pages" element={<ProtectedRoute allowedRoles={['admin', 'staff']}><PageManagement /></ProtectedRoute>} />
 
           {/* Faculty Routes */}
@@ -118,7 +122,10 @@ function App() {
           <Route path="/faculty/elibrary" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><ELibraryManagement /></ProtectedRoute>} />
 
           {/* Placement Routes */}
-          <Route path="/placement" element={<ProtectedRoute allowedRoles={['placement', 'admin']}><PlacementDashboard /></ProtectedRoute>} />
+          <Route path="/placement/manage" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><PlacementManagement /></ProtectedRoute>} />
+          <Route path="/placement/create" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><CreatePlacementDrive /></ProtectedRoute>} />
+          <Route path="/placement/edit/:id" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><CreatePlacementDrive /></ProtectedRoute>} />
+          <Route path="/placement" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><PlacementDashboard /></ProtectedRoute>} />
 
           {/* Student Routes */}
           <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />

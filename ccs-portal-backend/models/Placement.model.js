@@ -1,34 +1,65 @@
 const mongoose = require('mongoose');
 
 const placementSchema = new mongoose.Schema({
+  companyName: {
+    type: String,
+    required: true,
+    trim: true
+  },
   role: {
     type: String,
     required: true,
     trim: true
   },
-  company: {
+  jobDescription: {
     type: String,
-    required: true,
-    trim: true
+    required: true
+  },
+  companyType: {
+    type: String,
+    enum: ['Product Based', 'Service Based'],
+    required: true
   },
   location: {
     type: String,
     required: true
   },
-  description: {
+  recruitmentProcess: {
     type: String,
     required: true
   },
-  requirements: {
+  companyLink: {
     type: String
   },
-  salary: {
+  applyLink: {
     type: String
+  },
+  eligibility: {
+    type: String
+  },
+  ctc: {
+    type: String
+  },
+  targetSchools: {
+    type: [String],
+    default: []
+  },
+  targetDepartments: {
+    type: [String],
+    default: []
+  },
+  targetYears: {
+    type: [String],
+    default: []
+  },
+  skills: {
+    type: [String],
+    default: []
   },
   status: {
-    type: String,
-    enum: ['active', 'closed'],
-    default: 'active'
+     type: String,
+     enum: ['Open', 'Closed'],
+     default: 'Open'
   },
   deadline: {
     type: Date

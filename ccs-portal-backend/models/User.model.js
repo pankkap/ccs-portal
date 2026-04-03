@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  college: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  year: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   order: {
     type: Number,
     default: 0

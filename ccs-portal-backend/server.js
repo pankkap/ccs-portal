@@ -22,6 +22,7 @@ const elibraryRoutes = require('./routes/elibrary.routes');
 const aiRoutes = require('./routes/ai.routes');
 const questionRoutes = require('./routes/question.routes');
 const testRoutes = require('./routes/test.routes');
+const academicRoutes = require('./routes/academic.routes');
 const authController = require('./controllers/auth.controller');
 const path = require('path');
 
@@ -83,6 +84,7 @@ app.use('/api/elibrary', elibraryRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/tests', testRoutes);
+app.use('/api/academic', academicRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

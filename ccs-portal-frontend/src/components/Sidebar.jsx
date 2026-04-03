@@ -14,7 +14,8 @@ import {
   GraduationCap,
   Book,
   ArrowLeft,
-  Menu
+  Menu,
+  School
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -31,6 +32,8 @@ export const Sidebar = ({ role }) => {
       { icon: GraduationCap, label: 'Students', path: '/admin/students' },
       { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
       { icon: Book, label: 'E-Library', path: '/admin/elibrary' },
+      { icon: School, label: 'School Management', path: '/admin/schools' },
+      { icon: Briefcase, label: 'Placement Drives', path: '/placement/manage' },
     ],
     faculty: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
@@ -41,6 +44,7 @@ export const Sidebar = ({ role }) => {
     ],
     placement: [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/placement' },
+      { icon: Briefcase, label: 'Manage Drives', path: '/placement/manage' },
     ],
     student: [
       { type: 'header', label: 'MAIN' },

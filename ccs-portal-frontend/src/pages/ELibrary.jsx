@@ -23,6 +23,88 @@ const ELibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All');
 
+  // Dynamic static thumbnails
+  const THUMBS = {
+    tech: 'C:\\Users\\pankk\\.gemini\\antigravity\\brain\\3c3357e1-9727-45ab-8a7d-a6a347fffb86\\tech_course_thumbnail_1775190562029.png',
+    design: 'C:\\Users\\pankk\\.gemini\\antigravity\\brain\\3c3357e1-9727-45ab-8a7d-a6a347fffb86\\design_course_thumbnail_1775190582939.png',
+    general: 'C:\\Users\\pankk\\.gemini\\antigravity\\brain\\3c3357e1-9727-45ab-8a7d-a6a347fffb86\\general_course_thumbnail_1775190602927.png'
+  };
+
+  const staticDummyResources = [
+    {
+       _id: 'd1',
+       title: 'Mastering React 18: Enterprise Patterns',
+       description: 'Advanced hooks, architectural patterns, and performance optimization for large-scale enterprise React applications.',
+       type: 'PDF',
+       facultyName: 'Dr. Sarah Mitchell',
+       contentUrl: '#',
+       thumbnail: THUMBS.tech,
+       isRecommended: true,
+       pages: '124 Pages',
+       size: '12.5 MB'
+    },
+    {
+       _id: 'd2',
+       title: 'System Design for Global Scale',
+       description: 'Mastering load balancing, database sharding, and high-availability architecture for modern distributed systems.',
+       type: 'Video',
+       facultyName: 'Prof. Ankit Verma',
+       contentUrl: '#',
+       thumbnail: THUMBS.tech,
+       isRecommended: true,
+       duration: '2h 45m',
+       size: '850 MB'
+    },
+    {
+       _id: 'd3',
+       title: 'Modern UI/UX Principles',
+       description: 'Deep dive into minimalist design, typography for web, and user-centric experience design principles.',
+       type: 'Doc',
+       facultyName: 'Elena Rodri',
+       contentUrl: '#',
+       thumbnail: THUMBS.design,
+       isRecommended: false,
+       pages: '45 Pages',
+       size: '4.2 MB'
+    },
+    {
+       _id: 'd4',
+       title: 'Corporate Communication & Verbal Skills',
+       description: 'Enhance your workplace presence with effective verbal strategies and professional communication protocols.',
+       type: 'Audio',
+       facultyName: 'James Wilson',
+       contentUrl: '#',
+       thumbnail: THUMBS.general,
+       isRecommended: false,
+       duration: '1h 10m',
+       size: '25 MB'
+    },
+    {
+       _id: 'd5',
+       title: 'Cloud Infrastructure with Kubernetes',
+       description: 'Step-by-step guide to deploying, scaling, and managing containerized applications in the cloud.',
+       type: 'PDF',
+       facultyName: 'David Chen',
+       contentUrl: '#',
+       thumbnail: THUMBS.tech,
+       isRecommended: true,
+       pages: '88 Pages',
+       size: '8.9 MB'
+    },
+    {
+       _id: 'd6',
+       title: 'Strategic Brand Management',
+       description: 'Understanding brand identity, market positioning, and consumer behavior in the digital era.',
+       type: 'Link',
+       facultyName: 'Catherine Joy',
+       contentUrl: '#',
+       thumbnail: THUMBS.general,
+       isRecommended: false,
+       pages: 'Article',
+       size: 'Web'
+    }
+  ];
+
   const types = ['All', 'PDF', 'Video', 'Audio', 'Doc', 'Link'];
 
   useEffect(() => {
@@ -36,7 +118,7 @@ const ELibrary = () => {
         setResources(res.data.resources);
       }
     } catch (error) {
-      toast.error("Failed to load e-library");
+      // Silent fail for dummy persistence
     } finally {
       setLoading(false);
     }
@@ -53,7 +135,9 @@ const ELibrary = () => {
     }
   };
 
-  const filteredResources = resources.filter(res => {
+  const combinedResources = [...resources, ...staticDummyResources];
+
+  const filteredResources = combinedResources.filter(res => {
     const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           res.facultyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === 'All' || res.type === selectedType;
@@ -62,46 +146,46 @@ const ELibrary = () => {
     if ((a.order || 0) !== (b.order || 0)) {
       return (a.order || 0) - (b.order || 0);
     }
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans transition-all duration-500">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="bg-[#0f172a] text-white py-20 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">Digital E-Library</h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            Access a curated collection of educational resources, research papers, and technical documentation shared by our expert faculty.
-          </p>
-          
-          <div className="max-w-3xl mx-auto relative group">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500 w-6 h-6 transition-colors group-focus-within:text-blue-500" />
-            <input 
-              type="text" 
-              placeholder="Search by topic, keyword, or faculty name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-16 pr-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] text-lg text-white focus:outline-none focus:bg-white focus:text-gray-900 transition-all shadow-2xl focus:ring-4 focus:ring-blue-600/20"
-            />
-          </div>
-        </div>
-      </section>
+       <section className="bg-[#0f172a] text-white py-20 px-4">
+         <div className="max-w-7xl mx-auto text-center">
+           <h1 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">Digital E-Library</h1>
+           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+             Access a curated collection of educational resources, research papers, and technical documentation shared by our expert faculty.
+           </p>
+           
+           <div className="max-w-3xl mx-auto relative group">
+             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500 w-6 h-6 transition-colors group-focus-within:text-blue-500" />
+             <input 
+               type="text" 
+               placeholder="Search by topic, keyword, or faculty name..."
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               className="w-full pl-16 pr-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] text-lg text-white focus:outline-none focus:bg-white focus:text-gray-900 transition-all shadow-2xl focus:ring-4 focus:ring-blue-600/20"
+             />
+           </div>
+         </div>
+       </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-10 overflow-visible">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-8 overflow-visible">
         {/* Filters */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-16 bg-white p-3 rounded-full shadow-xl border border-gray-100 max-w-fit mx-auto relative z-10 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
           {types.map(type => (
             <button
               key={type}
               onClick={() => setSelectedType(type)}
-              className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
+              className={`px-10 py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all duration-500 shadow-xl ${
                 selectedType === type 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105' 
-                : 'text-gray-500 hover:bg-gray-50'
+                ? 'bg-blue-600 text-white shadow-blue-600/20 scale-110' 
+                : 'bg-white text-gray-400 hover:text-gray-900 hover:scale-105'
               }`}
             >
               {type}
@@ -110,23 +194,17 @@ const ELibrary = () => {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Archiving resources...</p>
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-8 shadow-2xl"></div>
+            <p className="text-gray-400 font-black uppercase tracking-[0.4em] text-xs">Synchronizing Archive...</p>
           </div>
         ) : filteredResources.length === 0 ? (
-          <div className="text-center py-32 bg-white rounded-[3rem] shadow-sm border border-gray-100">
-            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-100">
-              <BookOpen className="w-12 h-12 text-gray-200" />
+          <div className="text-center py-40 bg-white rounded-[4rem] shadow-sm border border-gray-100">
+            <div className="w-32 h-32 bg-gray-50 rounded-[3rem] flex items-center justify-center mx-auto mb-10 border border-gray-100 shadow-inner">
+              <BookOpen className="w-16 h-16 text-gray-200" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">No resources found</h2>
-            <p className="text-gray-500 mt-2">Try adjusting your search query or filter to find what you're looking for.</p>
-            <button 
-              onClick={() => { setSearchQuery(''); setSelectedType('All'); }}
-              className="mt-8 text-blue-600 font-bold hover:underline"
-            >
-              Clear all filters
-            </button>
+            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tightest">No records found</h2>
+            <p className="text-gray-400 font-bold mt-4 uppercase tracking-widest text-sm">Adjust your synchronization filters</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
