@@ -33,7 +33,6 @@ export const Sidebar = ({ role }) => {
       { icon: Book, label: 'E-Library', path: '/admin/elibrary' },
     ],
     faculty: [
-      { type: 'header', label: 'MAIN' },
       { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
       { icon: Users, label: 'Profile', path: '/faculty/profile' },
       { icon: BookOpen, label: 'Courses', path: '/faculty/courses' },
