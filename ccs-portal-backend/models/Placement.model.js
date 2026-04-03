@@ -72,7 +72,37 @@ const placementSchema = new mongoose.Schema({
   postedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  applicants: [{
+    studentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    studentName: {
+      type: String,
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['applied', 'shortlisted', 'rejected', 'placed'],
+      default: 'applied'
+    },
+    skills: {
+       type: [String],
+       default: []
+    },
+    resume: {
+      type: String
+    },
+    notes: {
+      type: String
+    },
+    appliedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, { timestamps: true });
 
 const Placement = mongoose.models.Placement || mongoose.model('Placement', placementSchema);

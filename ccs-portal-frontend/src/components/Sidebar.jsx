@@ -47,13 +47,10 @@ export const Sidebar = ({ role }) => {
       { icon: Briefcase, label: 'Manage Drives', path: '/placement/manage' },
     ],
     student: [
-      { type: 'header', label: 'MAIN' },
       { icon: LayoutDashboard, label: 'Dashboard', path: '/student' },
       { icon: BookOpen, label: 'My Courses', path: '/student/courses' },
-      { type: 'header', label: 'EVALUATION' },
       { icon: CheckSquare, label: 'Mock Tests', path: '/student/mock-tests' },
       { icon: Award, label: 'Certificates', path: '/student/certificates' },
-      { type: 'header', label: 'CAREER' },
       { icon: Briefcase, label: 'Placements', path: '/student/placements' },
     ],
   };

@@ -12,7 +12,7 @@ const api = axios.create({
 
 const assessmentService = {
   /**
-   * Get all published assessments
+   * Get all published assessments (Old Registry)
    */
   getAllAssessments: async (params = {}) => {
     try {
@@ -21,6 +21,19 @@ const assessmentService = {
     } catch (error) {
       console.error('Error fetching assessments:', error);
       throw error.response?.data || { message: 'Failed to fetch assessments' };
+    }
+  },
+
+  /**
+   * Get all mock tests (New Unified Repository)
+   */
+  getAllTests: async () => {
+    try {
+      const response = await api.get('/tests');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching tests:', error);
+      throw error.response?.data || { message: 'Failed to fetch practice tests' };
     }
   },
 

@@ -46,6 +46,20 @@ export const AuthProvider = ({ children }) => {
   const refreshProfile = async () => {
     await initAuth();
   };
+  
+  const updateProfile = async (profileData) => {
+    try {
+      const res = await authService.updateProfile(profileData);
+      if (res.success) {
+        setProfile(res.data.user);
+        localStorage.setItem('profile', JSON.stringify(res.data.user));
+      }
+      return res;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  };
 
   // Firebase profile listener removed as we use backend API now.
 
@@ -62,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     refreshProfile,
+    updateProfile,
     isAdmin: profile?.role === 'admin',
     isFaculty: profile?.role === 'faculty',
     isPlacement: profile?.role === 'placement',

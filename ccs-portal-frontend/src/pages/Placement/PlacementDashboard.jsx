@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
 import { Briefcase, Users, CheckCircle, Clock, Plus, ArrowRight, Edit3, Trash2, MapPin, Building2, Loader2, Search, Filter } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import placementService from '../../services/placementService';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ const PlacementDashboard = () => {
   const [placements, setPlacements] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
@@ -34,6 +35,19 @@ const PlacementDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Broadcast Termination: Are you sure you want to delete this drive?")) return;
+    try {
+      const res = await placementService.deleteDrive(id);
+      if (res.success) {
+        toast.success("Drive decommissioned successfully");
+        fetchData();
+      }
+    } catch (err) {
+      toast.error("Failed to delete drive");
+    }
+  };
 
   const stats = [
     { label: 'Active Drives', value: placements.filter(p => p.status === 'active' || p.status === 'Open').length, icon: Briefcase, color: 'blue' },
@@ -108,11 +122,17 @@ const PlacementDashboard = () => {
                             <p className="text-gray-500 font-bold text-sm mt-1">{job.company}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <button className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => navigate(`/placement/edit/${job._id}`)}
+                            className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                          >
                             <Edit3 className="w-5 h-5" />
                           </button>
-                          <button className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all">
+                          <button 
+                            onClick={() => handleDelete(job._id)}
+                            className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all"
+                          >
                             <Trash2 className="w-5 h-5" />
                           </button>
                         </div>

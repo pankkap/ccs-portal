@@ -50,7 +50,9 @@ import CourseView from './pages/Student/CourseView';
 import AssessmentView from './pages/Student/AssessmentView';
 import MockTests from './pages/Student/MockTests';
 import Placements from './pages/Student/Placements';
+import StudentPlacementDetail from './pages/Student/PlacementDetail';
 import Certificates from './pages/Student/Certificates';
+import StudentSettings from './pages/Student/Settings';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -134,7 +136,9 @@ function App() {
           <Route path="/student/assessment/:assessmentId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><AssessmentView /></ProtectedRoute>} />
           <Route path="/student/mock-tests" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockTests /></ProtectedRoute>} />
           <Route path="/student/placements" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Placements /></ProtectedRoute>} />
+          <Route path="/student/placements/:id" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentPlacementDetail /></ProtectedRoute>} />
           <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Certificates /></ProtectedRoute>} />
+          <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentSettings /></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" />} />

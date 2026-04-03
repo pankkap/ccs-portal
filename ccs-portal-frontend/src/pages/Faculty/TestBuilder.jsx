@@ -400,8 +400,8 @@ const TestBuilder = () => {
   if (fetchingTest) return (
     <Layout>
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-        <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Decoding Blueprint Data...</p>
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-tight">Decoding Blueprint Data...</p>
       </div>
     </Layout>
   );
@@ -411,19 +411,19 @@ const TestBuilder = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-colors duration-300">
         <header className="mb-10 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-8 transition-colors">
           <div className="flex items-center gap-6">
-            <Link to="/faculty/mock-tests" className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-600 transition-all text-gray-400 hover:text-indigo-600">
+            <Link to="/faculty/mock-tests" className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 hover:border-blue-100 dark:hover:border-blue-600 transition-all text-gray-400 hover:text-blue-600">
                <ArrowLeft className="w-5 h-5 transition-transform" />
             </Link>
             <div>
-              <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tightest mb-1 transition-colors">{testId ? 'Modify Blueprint' : 'Architect New Test'}</h1>
-              <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">{testId ? `ID: ${testId}` : 'Unified Selection Workflow'}</p>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight mb-1 transition-colors">{testId ? 'Modify Blueprint' : 'Architect New Test'}</h1>
+              <p className="text-sm font-medium text-gray-400 dark:text-gray-500 tracking-tight transition-colors">{testId ? `ID: ${testId}` : 'Unified Selection Workflow'}</p>
             </div>
           </div>
           
           <button 
             onClick={handleFinalSave}
             disabled={saving || draftQuestions.length === 0}
-            className="flex items-center gap-3 px-10 py-5 bg-[#0f172a] dark:bg-white text-white dark:text-gray-900 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-black dark:hover:bg-gray-100 transition-all shadow-2xl shadow-indigo-100 dark:shadow-indigo-900/10 disabled:opacity-30 group"
+            className="flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-[2rem] font-bold text-xs tracking-tight hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 dark:shadow-blue-900/10 disabled:opacity-30 group"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />}
             {testId ? 'Commit Changes' : 'Publish Mock Test'}
@@ -436,7 +436,7 @@ const TestBuilder = () => {
              <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-10 border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden transition-colors">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -mr-16 -mt-16 opacity-50"></div>
                 
-                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-8 flex items-center gap-2">
+                <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-tight mb-8 flex items-center gap-2">
                    <Command className="w-3 h-3" />
                    Core Parameters
                 </h3>
@@ -506,10 +506,10 @@ const TestBuilder = () => {
 
              {/* Draft Reviewer */}
              <div className="bg-gray-900 dark:bg-slate-950 rounded-[2.5rem] p-10 text-white relative h-[500px] flex flex-col overflow-hidden transition-colors shadow-2xl">
-                <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Blueprint Draft</h3>
-                   <span className="text-xl font-black tracking-tight">{draftQuestions.length} <span className="text-[10px] text-white/40 font-bold ml-1 tracking-widest">ITEMS</span></span>
-                </div>
+                 <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-[10px] font-bold tracking-tight text-white/40">Blueprint Draft</h3>
+                    <span className="text-xl font-bold tracking-tight">{draftQuestions.length} <span className="text-[10px] text-white/40 font-bold ml-1 tracking-tight">ITEMS</span></span>
+                 </div>
                 
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pr-1">
                    {draftQuestions.length === 0 ? (
@@ -541,28 +541,28 @@ const TestBuilder = () => {
              <div className="flex items-center px-10 border-b border-gray-50 dark:border-slate-700 bg-gray-50/20 dark:bg-slate-900/20 transition-colors">
                 <button 
                    onClick={() => setMode('ai')}
-                   className={`px-6 py-8 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 border-b-4 transition-all ${mode === 'ai' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
+                   className={`px-6 py-8 text-[10px] font-bold uppercase tracking-tight flex items-center gap-3 border-b-4 transition-all ${mode === 'ai' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
                 >
                    <BrainCircuit className="w-4 h-4" />
                    AI Generated
                 </button>
                 <button 
                    onClick={() => setMode('upload')}
-                   className={`px-6 py-8 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 border-b-4 transition-all ${mode === 'upload' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
+                   className={`px-6 py-8 text-[10px] font-bold uppercase tracking-tight flex items-center gap-3 border-b-4 transition-all ${mode === 'upload' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
                 >
                    <FileSpreadsheet className="w-4 h-4" />
                    Bulk Upload
                 </button>
                 <button 
                    onClick={() => setMode('manual')}
-                   className={`px-6 py-8 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 border-b-4 transition-all ${mode === 'manual' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
+                   className={`px-6 py-8 text-[10px] font-bold uppercase tracking-tight flex items-center gap-3 border-b-4 transition-all ${mode === 'manual' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
                 >
                    <Terminal className="w-4 h-4" />
                    Manual Upload
                 </button>
                 <button 
                    onClick={() => setMode('bank')}
-                   className={`px-6 py-8 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 border-b-4 transition-all ${mode === 'bank' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
+                   className={`px-6 py-8 text-[10px] font-bold uppercase tracking-tight flex items-center gap-3 border-b-4 transition-all ${mode === 'bank' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400'}`}
                 >
                    <Layers className="w-4 h-4" />
                    Question Bank
@@ -706,7 +706,7 @@ const TestBuilder = () => {
                            <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2.2rem] flex items-center justify-center mx-auto mb-5 border border-indigo-100 dark:border-indigo-900/40 shadow-sm">
                               <BrainCircuit className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                            </div>
-                           <h3 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tightest">Instant Generator</h3>
+                           <h3 className="text-3xl font-bold text-gray-900 dark:text-white uppercase tracking-tightest">Instant Generator</h3>
                            <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-1.5">AI-assisted question architecture.</p>
                         </div>
 
@@ -772,7 +772,7 @@ const TestBuilder = () => {
                            <button 
                              type="submit" 
                              disabled={generatingAi}
-                             className="w-full py-6 bg-indigo-600 text-white rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.35em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 dark:shadow-indigo-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
+                             className="w-full py-6 bg-indigo-600 text-white rounded-[2.5rem] font-bold text-[11px] uppercase tracking-tight hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 dark:shadow-indigo-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
                            >
                               {generatingAi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4 fill-current" />}
                               {generatingAi ? 'Decoding Knowledge...' : 'Run Neural Generation'}

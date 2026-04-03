@@ -1,68 +1,58 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { Briefcase, MapPin, Building2, Clock, Search, Filter, ExternalLink, CheckCircle2, Loader2, Sparkles, Building, TrendingUp } from 'lucide-react';
+import { 
+  Building2, MapPin, Briefcase, Clock, Search, 
+  ExternalLink, GraduationCap, ChevronRight, CheckCircle2,
+  Filter, Calendar, Rocket, Info, Loader2, Target, Building, TrendingUp
+} from 'lucide-react';
 import { toast } from 'sonner';
 import placementService from '../../services/placementService';
 
 const StudentPlacements = () => {
   const { user, profile } = useAuth();
   const [placements, setPlacements] = useState([]);
-  const [applications, setApplications] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const placementsRes = await placementService.getPlacements();
-        setPlacements(placementsRes.success ? placementsRes.data.placements : []);
-
-        // Note: For students, we might need an endpoint to get THEIR applications
-        // or filter the general applications list if authorized.
-        // Assuming the backend handles "my applications" if we hit a specific route
-        // For now, let's assume getApplications returns all if admin, or my applications if student (standard MERN pattern)
-        const appsRes = await placementService.getApplications();
-        if (appsRes.success) {
-          const appsData = {};
-          appsRes.data.applications.forEach(app => {
-            appsData[app.placementId._id || app.placementId] = app;
-          });
-          setApplications(appsData);
-        }
-      } catch (error) {
-        console.error("Error fetching placements data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleApply = async (placement) => {
+  const fetchData = async () => {
     try {
-      const res = await placementService.applyForJob({
-        placementId: placement._id,
-        resume: profile?.resume || '', // Use profile resume if available
-        notes: 'Applied via student portal'
-      });
-
-      if (res.success) {
-        setApplications(prev => ({ 
-          ...prev, 
-          [placement._id]: res.data.application 
-        }));
-        toast.success(`Application transmitted to ${placement.company} HR!`);
+      const matchedRes = await placementService.getMatchedPlacements();
+      
+      if (matchedRes.success && matchedRes.data.placements?.length > 0) {
+        setPlacements(matchedRes.data.placements);
+      } else {
+        const allRes = await placementService.getPlacements();
+        if (allRes.success) {
+          setPlacements(allRes.data.placements || []);
+        }
       }
     } catch (error) {
-      toast.error(error.message || "Failed to submit application");
+      console.error("Error fetching institutional placement drives:", error);
+      try {
+        const allRes = await placementService.getPlacements();
+        if (allRes.success) {
+          setPlacements(allRes.data.placements || []);
+        } else {
+          toast.error("Failed to synchronize corporate repository");
+        }
+      } catch (fallbackError) {
+        toast.error("Failed to synchronize corporate repository");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+
   const filteredPlacements = placements.filter(p => 
     p.role.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.company.toLowerCase().includes(searchQuery.toLowerCase())
+    p.companyName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) return (
@@ -108,7 +98,7 @@ const StudentPlacements = () => {
         {filteredPlacements.length > 0 ? (
           <div className="grid grid-cols-1 gap-8">
             {filteredPlacements.map((job) => {
-              const application = applications[job._id];
+              const application = job.applicants?.find(a => a.studentId && profile?._id && a.studentId.toString() === profile._id.toString());
               return (
                 <div key={job._id} className="bg-white p-10 rounded-[42px] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 group relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2 -translate-y-1/2"></div>
@@ -121,12 +111,12 @@ const StudentPlacements = () => {
                       <div className="space-y-4">
                         <div>
                           <div className="flex items-center gap-4 mb-2">
-                             <h3 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">{job.role}</h3>
-                             <span className={`px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${job.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                              {job.status === 'active' ? 'Intake Open' : 'Archived'}
+                             <h3 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{job.role}</h3>
+                             <span className={`px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${job.status === 'Open' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                              {job.status === 'Open' ? 'Identity Verified' : 'Closed'}
                             </span>
                           </div>
-                          <p className="text-gray-400 font-bold text-sm uppercase tracking-widest">{job.company}</p>
+                          <p className="text-gray-400 font-bold text-sm uppercase tracking-widest">{job.companyName}</p>
                         </div>
                         
                         <div className="flex flex-wrap gap-8">
@@ -144,22 +134,20 @@ const StudentPlacements = () => {
 
                     <div className="flex flex-col sm:flex-row gap-4">
                       {application ? (
-                        <div className="px-8 py-4 bg-green-50 text-green-700 rounded-2xl font-black text-xs flex items-center gap-3 border border-green-100 uppercase tracking-widest">
+                        <div className="flex-1 px-10 py-5 bg-green-50 text-green-600 rounded-[28px] text-[12px] font-black uppercase tracking-widest border border-green-100 flex items-center justify-center gap-3">
                           <CheckCircle2 className="w-5 h-5" />
-                          Authenticated ({application.status})
+                          Applied
                         </div>
                       ) : (
-                        <button 
-                          onClick={() => handleApply(job)}
-                          disabled={job.status !== 'active'}
-                          className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 disabled:opacity-50 uppercase tracking-widest"
+                        <Link 
+                          to={`/student/placements/${job._id}`}
+                          target="_blank"
+                          className="flex-1 px-10 py-5 bg-blue-600 text-white rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 group/explore"
                         >
-                          Submit Dossier
-                        </button>
+                          Explore the Opportunity
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
                       )}
-                      <button className="px-10 py-4 bg-white border border-gray-100 text-gray-900 rounded-2xl font-black text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-3 uppercase tracking-widest shadow-sm">
-                        JD & Details <ExternalLink className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                   
@@ -188,6 +176,7 @@ const StudentPlacements = () => {
           </div>
         )}
       </div>
+
     </Layout>
   );
 };

@@ -4,6 +4,26 @@ const Test = require('../models/Test.model');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 /**
+ * @route GET /api/tests
+ * @desc Get all mock tests (Authenticated)
+ */
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const tests = await Test.find()
+      .populate('questions')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: { tests }
+    });
+  } catch (error) {
+    console.error('Fetch Tests Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/**
  * @route GET /api/tests/my
  * @desc Get all tests created by the logged-in faculty
  * @access Private (Faculty/Admin)

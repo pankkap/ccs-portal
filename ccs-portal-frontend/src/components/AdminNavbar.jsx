@@ -87,11 +87,16 @@ export const AdminNavbar = () => {
             >
               <div className="p-2 space-y-1">
                 <button
-                  onClick={() => setIsProfileOpen(false)}
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    if (profile?.role === 'student') navigate('/student/settings');
+                    else if (profile?.role === 'faculty') navigate('/faculty/profile');
+                    else navigate('/admin/governance');
+                  }}
                   className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 dark:hover:text-white rounded-lg transition-colors flex items-center gap-3"
                 >
                   <Settings className="w-4 h-4 text-gray-400 dark:text-gray-400" />
-                  Settings
+                  {profile?.role === 'student' ? 'Identity Management' : 'Account Settings'}
                 </button>
                 <button
                   onClick={() => navigate('/')}

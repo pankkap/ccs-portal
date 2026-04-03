@@ -4,8 +4,26 @@ const API_URL = 'http://localhost:5000/api/placements';
 
 const placementService = {
   // Get all active placements (Student view)
-  getActivePlacements: async () => {
+  getPlacements: async () => {
     const res = await axios.get(API_URL, { withCredentials: true });
+    return res.data;
+  },
+
+  // Get placements matching student profile
+  getMatchedPlacements: async () => {
+    const res = await axios.get(`${API_URL}/matched`, { withCredentials: true });
+    return res.data;
+  },
+
+  // Get single placement details
+  getPlacementById: async (id) => {
+    const res = await axios.get(`${API_URL}/${id}`, { withCredentials: true });
+    return res.data;
+  },
+
+  // Get student's applications
+  getApplications: async () => {
+    const res = await axios.get(`${API_URL}/my-applications`, { withCredentials: true });
     return res.data;
   },
 
@@ -29,7 +47,13 @@ const placementService = {
 
   // Delete a drive
   deleteDrive: async (id) => {
-    const res = await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
+    const res = await axios.get(`${API_URL}/${id}`, { withCredentials: true });
+    return res.data;
+  },
+
+  // Apply for a job
+  applyForJob: async (applicationData) => {
+    const res = await axios.post(`${API_URL}/apply`, applicationData, { withCredentials: true });
     return res.data;
   }
 };

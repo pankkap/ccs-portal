@@ -89,7 +89,7 @@ const StudentMyCourses = () => {
               onClick={() => setActiveTab('available')}
               className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'available' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              Explore ({availableCourses.length})
+              Browse Catalog ({availableCourses.length})
             </button>
           </div>
         </header>
@@ -113,8 +113,8 @@ const StudentMyCourses = () => {
                   </div>
                   <div className="p-8 flex-1 flex flex-col">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{enrollment.courseId.title}</h3>
-                      <p className="text-sm text-gray-500 mb-6 line-clamp-2 min-h-[40px]">{enrollment.courseId.description}</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors tracking-tight">{enrollment.courseId.title}</h3>
+                      <p className="text-sm text-gray-500 mb-6 line-clamp-2 min-h-[40px] tracking-tight">{enrollment.courseId.description}</p>
                     </div>
 
                     <div className="space-y-6 pt-4 border-t border-gray-50">

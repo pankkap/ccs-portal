@@ -95,12 +95,12 @@ const PlacementManagement = () => {
         {loading ? (
           <div className="py-20 text-center">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-8"></div>
-            <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.4em]">Optimizing Drive Cache...</p>
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-tight">Optimizing Drive Cache...</p>
           </div>
         ) : filteredDrives.length === 0 ? (
           <div className="py-32 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[3rem]">
             <Briefcase className="w-20 h-20 text-gray-100 dark:text-gray-800 mx-auto mb-6" />
-            <p className="text-[10px] font-black text-gray-400 dark:text-gray-700 uppercase tracking-widest">No Active Placement Architectures Found</p>
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-700 uppercase tracking-tight">No Active Placement Architectures Found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
@@ -112,7 +112,7 @@ const PlacementManagement = () => {
                 <div className="bg-white dark:bg-gray-950 p-10 rounded-[2.8rem] h-full flex flex-col">
                   {/* Status Node */}
                   <div className="flex justify-between items-start mb-8">
-                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${drive.status === 'Open' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
+                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tight flex items-center gap-2 ${drive.status === 'Open' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
                       {drive.status === 'Open' ? <CircleCheck className="w-3 h-3" /> : <CircleX className="w-3 h-3" />}
                       {drive.status}
                     </div>

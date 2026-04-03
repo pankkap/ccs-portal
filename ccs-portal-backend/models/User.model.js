@@ -70,6 +70,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  skills: {
+    type: [String],
+    default: []
+  },
+  preferences: {
+    skipSkillPrompt: {
+      type: Boolean,
+      default: false
+    }
+  },
   role: {
     type: String,
     enum: ['admin', 'staff', 'faculty', 'student', 'placement'],
@@ -91,7 +101,11 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  appliedPlacements: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Placement'
+  }]
 }, {
   timestamps: true
 });

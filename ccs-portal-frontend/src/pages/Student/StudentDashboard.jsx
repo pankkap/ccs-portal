@@ -1,67 +1,73 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
-import { BookOpen, CheckCircle, Award, Clock, ArrowRight, PlayCircle, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { BookOpen, CheckCircle, Award, Clock, ArrowRight, PlayCircle, Loader2, Zap, Briefcase } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import enrollmentService from '../../services/enrollmentService';
 import courseService from '../../services/courseService';
+import placementService from '../../services/placementService';
+import ProfileCompletionModal from '../../components/Student/ProfileCompletionModal';
+import { toast } from 'sonner';
 
 const StudentDashboard = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [enrollments, setEnrollments] = useState([]);
   const [recommendedCourses, setRecommendedCourses] = useState([]);
+  const [matchedPlacements, setMatchedPlacements] = useState([]);
+  const [appliedCount, setAppliedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!profile) return;
+      
       try {
-        // Fetch enrollments
-        const enrollRes = await enrollmentService.getMyEnrollments();
-        if (enrollRes.success) {
-          setEnrollments(enrollRes.data.enrollments || []);
-        }
+        setLoading(true);
+        // Concurrent Fetching for Dashboard Performance
+        const [enrollRes, matchedRes, appsRes] = await Promise.all([
+          enrollmentService.getMyEnrollments(),
+          placementService.getMatchedPlacements(),
+          placementService.getApplications()
+        ]);
 
-        // Fetch recommended courses
-        const coursesRes = await courseService.getAllCourses();
-        if (coursesRes.success) {
-          // Filter out courses already enrolled in
-          const enrolledCourseIds = enrollRes.data.enrollments.map(e => e.courseId._id);
-          const available = coursesRes.data.courses.filter(c => !enrolledCourseIds.includes(c._id));
-          setRecommendedCourses(available.slice(0, 4));
-        }
+        if (enrollRes.success) setEnrollments(enrollRes.data.enrollments || []);
+        if (matchedRes.success) setMatchedPlacements(matchedRes.data.placements || []);
+        if (appsRes.success) setAppliedCount(appsRes.data.applications?.length || 0);
+
       } catch (error) {
-        console.error("Error fetching student dashboard data:", error);
+        console.error("Dashboard synchronization error:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [profile]);
 
   const stats = [
     { label: 'Enrolled Courses', value: enrollments.length, icon: BookOpen, color: 'blue' },
     { label: 'In Progress', value: enrollments.filter(e => e.status === 'in-progress').length, icon: Clock, color: 'orange' },
     { label: 'Completed', value: enrollments.filter(e => e.status === 'completed').length, icon: CheckCircle, color: 'green' },
-    { label: 'Certificates', value: enrollments.filter(e => e.status === 'completed').length, icon: Award, color: 'purple' },
+    { label: 'Applications', value: appliedCount, icon: Briefcase, color: 'purple' },
   ];
 
-  if (loading) return (
-    <Layout>
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Personalizing your campus dashboard...</p>
-      </div>
-    </Layout>
-  );
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Personalizing your campus dashboard...</p>
+        </div>
+      );
+    }
 
-  return (
-    <Layout>
+    return (
       <div className="max-w-7xl mx-auto pb-20">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Student Success Hub</h1>
-            <p className="text-gray-500 mt-2 text-lg">Welcome back, {profile?.name}. Ready for today's session?</p>
+            <p className="text-gray-500 mt-2 text-lg">Welcome back, {profile?.name || 'Scholar'}. Ready for today's session?</p>
           </div>
           <Link to="/student/courses" className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-gray-100 group">
             Explore All Courses
@@ -190,6 +196,28 @@ const StudentDashboard = () => {
 
           {/* Sidebar Content */}
           <div className="space-y-10">
+            {matchedPlacements.length > 0 && (
+              <section className="bg-gradient-to-br from-blue-600 to-blue-700 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-100 overflow-hidden relative group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
+                 <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-yellow-300" />
+                    Elite Matches
+                 </h3>
+                 <div className="space-y-4">
+                    {matchedPlacements.slice(0, 3).map(job => (
+                      <div key={job._id} className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer" onClick={() => navigate('/student/placements')}>
+                         <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100 mb-1">{job.companyName}</p>
+                         <h4 className="text-sm font-bold truncate">{job.role}</h4>
+                      </div>
+                    ))}
+                 </div>
+                 <Link to="/student/placements" className="mt-8 flex items-center gap-2 text-xs font-bold text-white/80 hover:text-white transition-colors">
+                    View Verified Opportunities
+                    <ArrowRight className="w-4 h-4" />
+                 </Link>
+              </section>
+            )}
+
             <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
               <h3 className="text-xl font-bold text-gray-900 mb-8">Certification Vault</h3>
               
@@ -228,6 +256,12 @@ const StudentDashboard = () => {
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <Layout>
+      {renderContent()}
     </Layout>
   );
 };
