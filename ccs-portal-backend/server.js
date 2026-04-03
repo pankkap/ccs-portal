@@ -19,6 +19,9 @@ const enrollmentRoutes = require('./routes/enrollment.routes');
 const placementRoutes = require('./routes/placement.routes');
 const certificateRoutes = require('./routes/certificate.routes');
 const elibraryRoutes = require('./routes/elibrary.routes');
+const aiRoutes = require('./routes/ai.routes');
+const questionRoutes = require('./routes/question.routes');
+const testRoutes = require('./routes/test.routes');
 const authController = require('./controllers/auth.controller');
 const path = require('path');
 
@@ -77,6 +80,9 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/placements', placementRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/elibrary', elibraryRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/tests', testRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -32,6 +32,10 @@ import AssessmentCreation from './pages/Faculty/AssessmentCreation';
 import FacultyMyCourses from './pages/Faculty/MyCourses';
 import FacultyProfile from './pages/Faculty/FacultyProfile';
 import ELibraryManagement from './pages/Faculty/ELibraryManagement';
+import AIQuestionGenerator from './pages/Faculty/AIQuestionGenerator';
+import QuestionBank from './pages/Faculty/QuestionBank';
+import TestBuilder from './pages/Faculty/TestBuilder';
+import FacultyMockTests from './pages/Faculty/MockTests';
 
 // Placement Pages
 import PlacementDashboard from './pages/Placement/PlacementDashboard';
@@ -108,6 +112,9 @@ function App() {
           <Route path="/faculty/assessment/new" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
           <Route path="/faculty/assessment/edit/:assessmentId" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><AssessmentCreation /></ProtectedRoute>} />
           <Route path="/faculty/profile" element={<ProtectedRoute allowedRoles={['faculty', 'admin']}><FacultyProfile /></ProtectedRoute>} />
+          <Route path="/faculty/mock-tests" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><FacultyMockTests /></ProtectedRoute>} />
+          <Route path="/faculty/test-builder" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><TestBuilder /></ProtectedRoute>} />
+          <Route path="/faculty/test-builder/:testId" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><TestBuilder /></ProtectedRoute>} />
           <Route path="/faculty/elibrary" element={<ProtectedRoute allowedRoles={['faculty', 'admin', 'placement']}><ELibraryManagement /></ProtectedRoute>} />
 
           {/* Placement Routes */}

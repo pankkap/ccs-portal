@@ -26,16 +26,18 @@ export const AdminNavbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = !isDarkTheme;
-    setIsDarkTheme(newTheme);
-    if (newTheme) {
+  // Sync theme class on mount and state change
+  useEffect(() => {
+    if (isDarkTheme) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
+  }, [isDarkTheme]);
+
+  const toggleTheme = () => {
+    setIsDarkTheme(!isDarkTheme);
+    localStorage.setItem('theme', !isDarkTheme ? 'dark' : 'light');
   };
 
   const handleLogout = () => {
