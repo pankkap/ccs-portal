@@ -280,7 +280,8 @@ router.put('/applications', authenticate, authorize('placement', 'admin', 'staff
  */
 router.get('/:id', async (req, res) => {
   try {
-    const placement = await Placement.findById(req.params.id);
+    const placement = await Placement.findById(req.params.id)
+      .populate('applicants.studentId', 'rollNo name year department college cgpa resume');
     if (!placement) {
       return res.status(404).json({ success: false, message: 'Drive not found' });
     }

@@ -16,6 +16,7 @@ const StudentDashboard = () => {
   const [matchedPlacements, setMatchedPlacements] = useState([]);
   const [appliedCount, setAppliedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +44,21 @@ const StudentDashboard = () => {
     };
 
     fetchData();
+
+    // Mandatory Onboarding Check: If any academic identity field is missing, signal for profile synchronization.
+    const isIncomplete = profile && (
+        !profile.rollNo || 
+        !profile.college || 
+        !profile.department || 
+        !profile.year ||
+        (profile.cgpa === 0 || profile.cgpa === undefined)
+    );
+    
+    if (isIncomplete && profile.role === 'student') {
+        setShowOnboarding(true);
+    } else {
+        setShowOnboarding(false);
+    }
   }, [profile]);
 
   const stats = [
@@ -262,6 +278,10 @@ const StudentDashboard = () => {
   return (
     <Layout>
       {renderContent()}
+      <ProfileCompletionModal 
+        isOpen={showOnboarding} 
+        onClose={() => setShowOnboarding(false)} 
+      />
     </Layout>
   );
 };

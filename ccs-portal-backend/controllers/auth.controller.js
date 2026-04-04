@@ -188,7 +188,7 @@ const updateProfile = async (req, res) => {
     const { 
       name, email, designation, specialization, experience, 
       education, image, linkedin, department, 
-      college, year, skills, preferences
+      college, year, skills, preferences, rollNo, resume
     } = req.body;
     
     console.log('Update Profile Request Body:', req.body);
@@ -197,6 +197,8 @@ const updateProfile = async (req, res) => {
 
     if (name) updates.name = name;
     if (email) updates.email = email;
+    if (rollNo !== undefined) updates.rollNo = rollNo;
+    if (resume !== undefined) updates.resume = resume;
     if (designation !== undefined) updates.designation = designation;
     if (specialization !== undefined) updates.specialization = specialization;
     if (experience !== undefined) updates.experience = experience;

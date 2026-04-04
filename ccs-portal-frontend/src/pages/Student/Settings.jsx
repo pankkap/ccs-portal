@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Layout } from '../../components/Layout';
 import { 
@@ -12,22 +13,36 @@ import {
   Sparkles, 
   ShieldCheck,
   Building2,
+  ChevronDown,
+  Mail,
+  FileText,
+  Upload,
+  CheckCircle2,
+  Trash2,
   GraduationCap,
-  ChevronDown
+  ExternalLink,
+  Award
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import uploadService from '../../services/uploadService';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { profile, updateProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
+    rollNo: profile?.rollNo || '',
+    name: profile?.name || '',
+    email: profile?.email || '',
     college: profile?.college || '',
     department: profile?.department || '',
     year: profile?.year || '',
+    cgpa: profile?.cgpa || '',
     skills: profile?.skills || [],
+    resume: profile?.resume || '',
     preferences: {
       skipSkillPrompt: profile?.preferences?.skipSkillPrompt || false
     }
@@ -37,10 +52,15 @@ const Settings = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
+        rollNo: profile.rollNo || '',
+        name: profile.name || '',
+        email: profile.email || '',
         college: profile.college || '',
         department: profile.department || '',
         year: profile.year || '',
+        cgpa: profile.cgpa || '',
         skills: profile.skills || [],
+        resume: profile.resume || '',
         preferences: {
           skipSkillPrompt: profile.preferences?.skipSkillPrompt || false
         }
@@ -91,6 +111,7 @@ const Settings = () => {
       const res = await updateProfile(formData);
       if (res.success) {
         toast.success("Identity Architecture Synchronized");
+        navigate('/student');
       }
     } catch (err) {
       toast.error("Failed to update profile");
@@ -136,6 +157,53 @@ const Settings = () => {
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Student Rollno.</label>
+                   <div className="relative group/input">
+                      <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within/input:text-blue-600 transition-colors pointer-events-none" />
+                      <input 
+                        type="text"
+                        value={formData.rollNo}
+                        onChange={(e) => setFormData({...formData, rollNo: e.target.value})}
+                        placeholder="Ex: 2024CS101..."
+                        className="w-full pl-16 pr-8 py-5 bg-gray-50 border-2 border-transparent rounded-[1.8rem] text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-blue-600/20 transition-all"
+                        required
+                      />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Student Name</label>
+                   <div className="relative group/input">
+                      <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within/input:text-blue-600 transition-colors pointer-events-none" />
+                      <input 
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="Your full name..."
+                        className="w-full pl-16 pr-8 py-5 bg-gray-50 border-2 border-transparent rounded-[1.8rem] text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-blue-600/20 transition-all font-bold"
+                        required
+                      />
+                   </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Student EmailID (SSO Verified)</label>
+                   <div className="relative group/input">
+                      <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 pointer-events-none" />
+                      <input 
+                        type="email"
+                        value={formData.email}
+                        readOnly
+                        disabled
+                        className="w-full pl-16 pr-8 py-5 bg-gray-100 border-2 border-transparent rounded-[1.8rem] text-sm font-bold text-gray-400 outline-none cursor-not-allowed opacity-70"
+                      />
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                         <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Primary SSO Domain</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="space-y-2">
                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">School / College</label>
                    <div className="relative group/input">
                       <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within/input:text-blue-600 transition-colors pointer-events-none" />
@@ -172,7 +240,7 @@ const Settings = () => {
                    </div>
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Academic Year / Batch</label>
                    <div className="relative group/input">
                       <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within/input:text-blue-600 transition-colors pointer-events-none" />
@@ -186,6 +254,24 @@ const Settings = () => {
                          {years.map(y => <option key={y._id} value={y.name}>{y.name}</option>)}
                       </select>
                       <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Current CGPA (Scale 10.0)</label>
+                   <div className="relative group/input">
+                      <Award className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within/input:text-blue-600 transition-colors pointer-events-none" />
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="10"
+                        value={formData.cgpa}
+                        onChange={(e) => setFormData({...formData, cgpa: e.target.value})}
+                        placeholder="Ex: 9.25..."
+                        className="w-full pl-16 pr-8 py-5 bg-gray-50 border-2 border-transparent rounded-[1.8rem] text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-blue-600/20 transition-all"
+                        required
+                      />
                    </div>
                 </div>
              </div>
@@ -251,6 +337,102 @@ const Settings = () => {
                    >
                       <div className={`w-6 h-6 bg-white rounded-full transition-transform ${formData.preferences.skipSkillPrompt ? 'translate-x-6 shadow-md' : 'translate-x-0'}`}></div>
                    </button>
+                </div>
+             </div>
+          </section>
+          
+          {/* Professional Dossier Card */}
+          <section className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-xl group">
+             <div className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:text-blue-600 transition-colors">
+                   <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                   <h2 className="text-xl font-bold text-gray-900">Professional Dossier</h2>
+                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Global Curriculum Vitae (CV)</p>
+                </div>
+             </div>
+
+             <div className="space-y-6">
+                <div 
+                  className={`relative p-10 border-2 border-dashed rounded-[2.5rem] transition-all flex flex-col items-center justify-center text-center cursor-pointer group/upload ${formData.resume ? 'border-emerald-200 bg-emerald-50/10' : 'border-gray-100 bg-gray-50/50 hover:border-blue-200 hover:bg-blue-50/20'}`}
+                  onClick={() => document.getElementById('resume-upload').click()}
+                >
+                   <input 
+                     type="file" 
+                     id="resume-upload"
+                     className="hidden" 
+                     accept=".pdf"
+                     onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        if (file.type !== 'application/pdf') return toast.error("Dossier must be in PDF format.");
+                        
+                        setSaving(true);
+                        try {
+                           const res = await uploadService.uploadFile(file);
+                           if (res.success) {
+                              setFormData({ ...formData, resume: res.data.url });
+                              toast.success("Dossier Stage Modified!");
+                           }
+                        } catch (err) {
+                           toast.error("Upload transmission failure.");
+                        } finally {
+                           setSaving(false);
+                        }
+                     }}
+                   />
+
+                   {formData.resume ? (
+                     <div className="space-y-4">
+                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-[24px] flex items-center justify-center mx-auto shadow-sm">
+                           <CheckCircle2 className="w-8 h-8" />
+                        </div>
+                        <div>
+                           <p className="text-sm font-black text-gray-900 uppercase">Institutional CV Synchronized</p>
+                           <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Click to update or replace your verified dossier</p>
+                        </div>
+                        <div className="flex gap-4 justify-center mt-6">
+                           <button 
+                             type="button"
+                             onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(formData.resume, '_blank');
+                             }}
+                             className="px-6 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center gap-2"
+                           >
+                              <ExternalLink className="w-4 h-4" /> Preview Dossier
+                           </button>
+                           <button 
+                             type="button"
+                             onClick={(e) => {
+                                e.stopPropagation();
+                                setFormData({ ...formData, resume: '' });
+                             }}
+                             className="px-6 py-3 bg-white border border-rose-100 text-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
+                           >
+                              <Trash2 className="w-4 h-4" /> Purge
+                           </button>
+                        </div>
+                     </div>
+                   ) : (
+                     <div className="space-y-4">
+                        <div className="w-16 h-16 bg-white rounded-[24px] border border-gray-100 flex items-center justify-center text-gray-300 mx-auto group-hover/upload:scale-110 transition-transform">
+                           <Upload className="w-8 h-8" />
+                        </div>
+                        <div>
+                           <p className="text-sm font-black text-gray-600 uppercase tracking-tight">Sync Professional CV (PDF)</p>
+                           <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Maximum File Size: 5MB</p>
+                        </div>
+                     </div>
+                   )}
+                </div>
+
+                <div className="flex items-start gap-4 p-6 bg-blue-50/30 border border-blue-50 rounded-[2rem]">
+                   <ShieldCheck className="w-6 h-6 text-blue-400 shrink-0 mt-0.5" />
+                   <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
+                     Your official dossier will be transmitted to recruiters during drive applications. Ensure your skill matrix and academic identity are updated before submission.
+                   </p>
                 </div>
              </div>
           </section>

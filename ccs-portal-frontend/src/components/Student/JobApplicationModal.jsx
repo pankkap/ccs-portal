@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, FileText, CheckCircle2, Loader2, Sparkles, Plus, Trash2, ShieldCheck, Briefcase, Target, Rocket } from 'lucide-react';
+import { X, Upload, FileText, CheckCircle2, Loader2, Sparkles, Plus, Trash2, ShieldCheck, Briefcase, Target, Rocket, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 import placementService from '../../services/placementService';
 import uploadService from '../../services/uploadService';
 
 const JobApplicationModal = ({ isOpen, onClose, job, onSuccess }) => {
-  const { profile } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const [skills, setSkills] = useState(() => {
     if (!profile?.skills) return [];
     if (Array.isArray(profile.skills)) return profile.skills;
@@ -17,6 +17,7 @@ const JobApplicationModal = ({ isOpen, onClose, job, onSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const [applying, setApplying] = useState(false);
   const fileInputRef = useRef(null);
+
 
   if (!isOpen) return null;
 
@@ -48,7 +49,9 @@ const JobApplicationModal = ({ isOpen, onClose, job, onSuccess }) => {
       const res = await uploadService.uploadFile(file);
       if (res.success) {
         setResumeUrl(res.data.url);
-        toast.success("Dossier Synchronized Successfully!");
+        // Persist to global profile immediately
+        await updateProfile({ resume: res.data.url });
+        toast.success("Dossier Synchronized Globally!");
       }
     } catch (error) {
       toast.error("Cloud synchronization failed.");
@@ -193,6 +196,21 @@ const JobApplicationModal = ({ isOpen, onClose, job, onSuccess }) => {
                  onChange={handleFileUpload}
                  accept=".pdf"
                />
+               {resumeUrl && (
+                  <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
+                     <button 
+                       type="button"
+                       onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(resumeUrl, '_blank');
+                       }}
+                       className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-100 group/preview"
+                     >
+                        <ExternalLink className="w-3.5 h-3.5 group-hover/preview:scale-110 transition-transform" />
+                        Preview My Verified Dossier
+                     </button>
+                  </div>
+               )}
             </div>
           </section>
 

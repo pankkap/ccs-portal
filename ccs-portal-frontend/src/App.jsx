@@ -42,6 +42,7 @@ import FacultyMockTests from './pages/Faculty/MockTests';
 import PlacementManagement from './pages/Placement/PlacementManagement';
 import CreatePlacementDrive from './pages/Placement/CreatePlacementDrive';
 import PlacementDashboard from './pages/Placement/PlacementDashboard';
+import PlacementDriveDetail from './pages/Placement/PlacementDriveDetail';
 
 // Student Pages
 import StudentDashboard from './pages/Student/StudentDashboard';
@@ -127,6 +128,8 @@ function App() {
           <Route path="/placement/manage" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><PlacementManagement /></ProtectedRoute>} />
           <Route path="/placement/create" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><CreatePlacementDrive /></ProtectedRoute>} />
           <Route path="/placement/edit/:id" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><CreatePlacementDrive /></ProtectedRoute>} />
+          <Route path="/placement/drive/:id" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><PlacementDriveDetail /></ProtectedRoute>} />
+          <Route path="/placement/progress/:id" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><UnderConstruction pageName="Drive Progress Report" /></ProtectedRoute>} />
           <Route path="/placement" element={<ProtectedRoute allowedRoles={['placement', 'admin', 'staff']}><PlacementDashboard /></ProtectedRoute>} />
 
           {/* Student Routes */}

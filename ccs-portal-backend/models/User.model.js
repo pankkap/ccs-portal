@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  rollNo: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   department: {
     type: String,
     trim: true,
@@ -37,6 +42,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  cgpa: {
+    type: Number,
+    default: 0
   },
   order: {
     type: Number,
@@ -105,7 +114,11 @@ const userSchema = new mongoose.Schema({
   appliedPlacements: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Placement'
-  }]
+  }],
+  resume: {
+    type: String,
+    default: ''
+  }
 }, {
   timestamps: true
 });

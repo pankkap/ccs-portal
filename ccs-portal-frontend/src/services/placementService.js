@@ -47,7 +47,7 @@ const placementService = {
 
   // Delete a drive
   deleteDrive: async (id) => {
-    const res = await axios.get(`${API_URL}/${id}`, { withCredentials: true });
+    const res = await axios.delete(`${API_URL}/${id}`, { withCredentials: true });
     return res.data;
   },
 

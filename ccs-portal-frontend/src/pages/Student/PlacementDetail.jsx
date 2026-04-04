@@ -5,7 +5,7 @@ import { Layout } from '../../components/Layout';
 import { 
   Building2, MapPin, Briefcase, Clock, Calendar, 
   ExternalLink, ArrowLeft, CheckCircle2, ChevronRight, 
-  ShieldCheck, Target, Award, Rocket, FileText, Loader2, Zap, DollarSign, Layers, Globe, GraduationCap
+  ShieldCheck, Target, Award, Rocket, FileText, Loader2, Zap, DollarSign, Layers, Globe, GraduationCap, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import placementService from '../../services/placementService';
@@ -70,10 +70,10 @@ const StudentPlacementDetail = () => {
           </div>
         </nav>
 
-        <div className="flex flex-col lg:flex-row gap-10">
+        <div className="max-w-4xl mx-auto space-y-10">
           
-          {/* Main Left Content */}
-          <div className="flex-1 space-y-10">
+          {/* Main Content Area */}
+          <div className="space-y-10">
             {/* Massive Header Hero */}
             <div className="bg-white p-10 md:p-14 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent"></div>
@@ -143,7 +143,7 @@ const StudentPlacementDetail = () => {
                 <div className="w-12 h-12 bg-gray-50 text-gray-900 rounded-2xl flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5 pointer-events-none" />
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Scope of Responsibility</h2>
+                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Job Description</h2>
               </div>
               
               <div className="prose prose-blue max-w-none">
@@ -165,85 +165,17 @@ const StudentPlacementDetail = () => {
                 </div>
               )}
             </section>
-
-          </div>
-
-          {/* Sticky Right Sidebar */}
-          <div className="lg:w-[420px] shrink-0 space-y-8">
             
-            {/* Sticky Action Card */}
-            <div className="sticky top-24 space-y-8">
-              <div className="bg-gray-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-gray-800">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/30 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/10 backdrop-blur-md">
-                        <Zap className="w-5 h-5 text-yellow-400" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Opportunity Gateway</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 mb-10">
-                    <div className="flex justify-between items-center pb-4 border-b border-white/10">
-                      <span className="text-gray-400 text-sm font-bold">Role Access</span>
-                      <span className="text-white text-sm font-black uppercase tracking-widest">{isClosed ? 'Closed' : 'Active'}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-4 border-b border-white/10">
-                      <span className="text-gray-400 text-sm font-bold">Eligibility</span>
-                      <span className="text-white text-sm font-black uppercase tracking-widest text-right max-w-[200px] truncate">{placement.eligibility || 'Standard Criteria'}</span>
-                    </div>
-                    {placement.companyLink && (
-                      <div className="pt-2">
-                        <a href={placement.companyLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:text-blue-300 transition-colors bg-white/5 py-3 px-4 rounded-xl w-fit">
-                          <ExternalLink className="w-4 h-4" /> Internal Insight link
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    {application ? (
-                      <div className="w-full px-8 py-5 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-center justify-center gap-2 backdrop-blur-md">
-                        <CheckCircle2 className="w-6 h-6 text-green-400" />
-                        <p className="font-black uppercase tracking-widest text-[11px] text-green-100">Application Synchronized</p>
-                      </div>
-                    ) : isClosed ? (
-                      <div className="w-full px-8 py-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col items-center justify-center gap-2 backdrop-blur-md">
-                        <p className="font-black uppercase tracking-widest text-[11px] text-red-200">Drive is Closed</p>
-                      </div>
-                    ) : (
-                      <>
-                         <button 
-                            onClick={() => setShowApplyModal(true)}
-                            className="w-full px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 group"
-                          >
-                            <Rocket className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
-                            Launch Application
-                          </button>
-                      </>
-                    )}
-                    
-                    {!application && !isClosed && (
-                      <button 
-                        onClick={() => setIsSkillModalOpen(true)}
-                        className="w-full px-8 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3 backdrop-blur-md"
-                      >
-                        <Target className="w-4 h-4 text-blue-300" />
-                        Verify Skill Alignments Prior
-                      </button>
-                    )}
-                  </div>
+            {/* Requirement & Selection Process Section */}
+            <section className="bg-white p-10 md:p-14 rounded-[40px] border border-gray-100 shadow-sm space-y-10">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
+                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Selection Journey</h2>
               </div>
 
-              {/* Requirement & Selection Process Card */}
-              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
-                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-blue-600" />
-                  Selection Journey
-                </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="pl-8 relative border-l-2 border-gray-100 space-y-8">
                   {(placement.recruitmentProcess || '1. Resume Screening\n2. Aptitude Test\n3. Interview').split('\n').map((step, idx) => {
                     const cleanStep = step.replace(/^\d+\.\s*/, '').trim();
@@ -251,17 +183,81 @@ const StudentPlacementDetail = () => {
                     return (
                       <div key={idx} className="relative">
                         <div className="absolute w-3 h-3 bg-blue-600 rounded-full -left-[39px] shadow-[0_0_0_4px_white]"></div>
-                        <p className="text-gray-700 font-bold text-sm">{cleanStep}</p>
+                        <p className="text-gray-700 font-bold text-sm tracking-tight">{cleanStep}</p>
                       </div>
                     )
                   })}
                 </div>
+                
+                <div className="bg-blue-50/30 border border-blue-50 p-8 rounded-3xl self-start">
+                   <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-3">Candidate Intelligence</p>
+                   <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                     Your verified dossier will be automatically synchronized with this selection sequence. Ensure all technical competencies are updated before initiating the sequence.
+                   </p>
+                </div>
+              </div>
+            </section>
+            
+            {/* New Simplified Action Section */}
+            <div className="bg-gray-900 rounded-[40px] p-10 md:p-14 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-gray-800">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="space-y-2 text-center md:text-left">
+                  <h3 className="text-2xl font-black uppercase tracking-tight">Ready to Proceed?</h3>
+                  <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Verify your dossier and submit your candidature.</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                  {placement.companyLink && (
+                    <a 
+                      href={placement.companyLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-full sm:w-auto px-10 py-5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 border border-white/10 backdrop-blur-md"
+                    >
+                      <Globe className="w-5 h-5 text-blue-400" />
+                      Visit Company Website
+                    </a>
+                  )}
+
+                  {placement.applyLink && (
+                    <a 
+                      href={placement.applyLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-full sm:w-auto px-10 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 border border-white/5 backdrop-blur-md"
+                    >
+                      <Plus className="w-5 h-5 text-emerald-400" />
+                      Additional Form
+                    </a>
+                  )}
+
+                  {application ? (
+                    <div className="w-full sm:w-auto px-10 py-5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center gap-3 backdrop-blur-md">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                      <p className="font-black uppercase tracking-widest text-[11px] text-emerald-100">Application Submitted</p>
+                    </div>
+                  ) : isClosed ? (
+                    <div className="w-full sm:w-auto px-10 py-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center gap-3 backdrop-blur-md text-red-200 font-black uppercase tracking-widest text-[11px]">
+                      Drive Closed
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setShowApplyModal(true)}
+                      className="w-full sm:w-auto px-12 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 group"
+                    >
+                      <Rocket className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+                      Submit Application
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            
           </div>
+
         </div>
       </div>
+
 
       <SkillUpdateModal 
         isOpen={isSkillModalOpen}
@@ -278,6 +274,7 @@ const StudentPlacementDetail = () => {
         job={placement}
         onSuccess={() => {
            fetchPlacementData();
+           navigate('/student/placements');
         }}
       />
     </Layout>
