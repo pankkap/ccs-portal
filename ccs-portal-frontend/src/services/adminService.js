@@ -51,6 +51,19 @@ const adminService = {
   },
 
   /**
+   * Quick update for user status (active/inactive)
+   */
+  updateUserStatus: async (id, status) => {
+    try {
+      const response = await api.patch(`/admin/users/${id}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating status for user ${id}:`, error);
+      throw error.response?.data || { message: 'Failed to update user status' };
+    }
+  },
+
+  /**
    * Delete user
    */
   deleteUser: async (id) => {

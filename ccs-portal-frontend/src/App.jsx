@@ -25,6 +25,7 @@ import UnderConstruction from './pages/Admin/UnderConstruction';
 import CourseManagement from './pages/Admin/CourseManagement';
 import AdminELibraryManagement from './pages/Admin/ELibraryManagement';
 import SchoolManagement from './pages/Admin/SchoolManagement';
+import StudentManagement from './pages/Admin/StudentManagement';
 
 // Faculty Pages
 import FacultyDashboard from './pages/Faculty/FacultyDashboard';
@@ -104,7 +105,7 @@ function App() {
           <Route path="/admin/access-control" element={<ProtectedRoute allowedRoles={['admin']}><AccessControl /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/faculty" element={<ProtectedRoute allowedRoles={['admin']}><FacultyManagement /></ProtectedRoute>} />
-          <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><UnderConstruction pageName="Students" /></ProtectedRoute>} />
+          <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><StudentManagement /></ProtectedRoute>} />
           <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><CourseManagement /></ProtectedRoute>} />
           <Route path="/admin/elibrary" element={<ProtectedRoute allowedRoles={['admin']}><AdminELibraryManagement /></ProtectedRoute>} />
           <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />

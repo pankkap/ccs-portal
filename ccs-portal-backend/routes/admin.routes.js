@@ -74,7 +74,10 @@ router.get('/users', authenticate, authorize('admin'), async (req, res) => {
       status,
       search,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
+      college,
+      department,
+      year
     } = req.query;
 
     // Build query
@@ -82,6 +85,9 @@ router.get('/users', authenticate, authorize('admin'), async (req, res) => {
     
     if (role) query.role = role;
     if (status) query.status = status;
+    if (college) query.college = college;
+    if (department) query.department = department;
+    if (year) query.year = year;
     
     if (search) {
       query.$or = [
@@ -241,6 +247,48 @@ router.delete('/users/:id', authenticate, authorize('admin'), async (req, res) =
     res.status(500).json({
       success: false,
       message: 'Error deleting user.',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Patch user status (admin only)
+ */
+router.patch('/users/:id/status', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['active', 'inactive', 'suspended'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status value.'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User status updated to ${status}.`,
+      data: { user }
+    });
+  } catch (error) {
+    console.error('Patch status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating user status.',
       error: error.message
     });
   }
