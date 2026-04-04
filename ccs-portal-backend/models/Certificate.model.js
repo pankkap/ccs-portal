@@ -19,6 +19,11 @@ const certificateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  certificateTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CertificateTemplate',
+    default: null
+  },
   issuedAt: {
     type: Date,
     default: Date.now

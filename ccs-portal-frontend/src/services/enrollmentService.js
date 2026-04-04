@@ -62,6 +62,19 @@ const enrollmentService = {
       throw error.response?.data || { message: 'Failed to update progress' };
     }
   },
+
+  /**
+   * Submit module or course assessment result
+   */
+  submitAssessmentResult: async (enrollmentId, submissionData) => {
+    try {
+      const response = await api.post(`/enrollments/${enrollmentId}/submit-assessment`, submissionData);
+      return response.data;
+    } catch (error) {
+      console.error('Submit assessment result error:', error);
+      throw error.response?.data || { message: 'Failed to submit assessment' };
+    }
+  },
 };
 
 export default enrollmentService;

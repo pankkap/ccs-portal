@@ -1,5 +1,26 @@
 const mongoose = require('mongoose');
 
+const attemptSchema = new mongoose.Schema({
+  testId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Test',
+    required: true
+  },
+  score: {
+    type: Number,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['passed', 'failed'],
+    required: true
+  },
+  completedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const enrollmentSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -23,6 +44,7 @@ const enrollmentSchema = new mongoose.Schema({
   completedModules: [{
     type: String // Module ID or Title
   }],
+  assessmentAttempts: [attemptSchema],
   enrolledAt: {
     type: Date,
     default: Date.now

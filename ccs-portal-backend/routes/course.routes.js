@@ -74,7 +74,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', authenticate, authorize('faculty', 'admin'), async (req, res) => {
   try {
-    const { title, description, skills, duration, thumbnail, published, modules } = req.body;
+    const { title, description, skills, duration, thumbnail, published, modules, finalAssessmentId, finalAllowedAttempts, certificateTemplateId, issueCertificate } = req.body;
 
     const newCourse = new Course({
       title,
@@ -83,6 +83,10 @@ router.post('/', authenticate, authorize('faculty', 'admin'), async (req, res) =
       duration,
       thumbnail,
       published,
+      finalAssessmentId,
+      finalAllowedAttempts,
+      certificateTemplateId,
+      issueCertificate,
       facultyId: req.user._id,
       facultyName: req.user.name,
       modules: modules || []

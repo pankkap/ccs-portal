@@ -8,12 +8,21 @@ const moduleSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['video', 'pdf', 'link'],
+    enum: ['video', 'pdf', 'link', 'assessment'],
     default: 'video'
   },
   contentUrl: {
     type: String,
-    required: true
+    required: function() { return this.type !== 'assessment'; }
+  },
+  assessmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Test',
+    default: null
+  },
+  allowedAttempts: {
+    type: Number,
+    default: 3
   },
   order: {
     type: Number,
@@ -40,12 +49,30 @@ const courseSchema = new mongoose.Schema({
     required: true
   },
   thumbnail: {
-    type: String, // URL to the uploaded image
+    type: String, 
     default: ''
   },
   published: {
     type: Boolean,
     default: false
+  },
+  finalAssessmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Test',
+    default: null
+  },
+  certificateTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CertificateTemplate',
+    default: null
+  },
+  issueCertificate: {
+    type: Boolean,
+    default: false
+  },
+  finalAllowedAttempts: {
+    type: Number,
+    default: 3
   },
   facultyId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -71,7 +98,6 @@ const courseSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Ensure modules are sorted by order when retrieving
 courseSchema.pre('save', function(next) {
   if (this.modules && this.modules.length > 0) {
     this.modules.sort((a, b) => a.order - b.order);

@@ -31,6 +31,7 @@ export const Sidebar = ({ role }) => {
       { icon: Users, label: 'Faculty', path: '/admin/faculty' },
       { icon: GraduationCap, label: 'Students', path: '/admin/students' },
       { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
+      { icon: Award, label: 'Certificate Templates', path: '/admin/certificates' },
       { icon: Book, label: 'E-Library', path: '/admin/elibrary' },
       { icon: School, label: 'School Management', path: '/admin/schools' },
       { icon: Briefcase, label: 'Placement Drives', path: '/placement/manage' },
@@ -39,7 +40,7 @@ export const Sidebar = ({ role }) => {
       { icon: LayoutDashboard, label: 'Dashboard', path: '/faculty/dashboard' },
       { icon: Users, label: 'Profile', path: '/faculty/profile' },
       { icon: BookOpen, label: 'Courses', path: '/faculty/courses' },
-      { icon: Award, label: 'Mock Tests', path: '/faculty/mock-tests' },
+      { icon: Award, label: 'Assessments', path: '/faculty/mock-tests' },
       { icon: Book, label: 'E-Library', path: '/faculty/elibrary' },
     ],
     placement: [
@@ -56,8 +57,6 @@ export const Sidebar = ({ role }) => {
   };
 
   const items = menuItems[role] || [];
-
-  // All active sidebars use dark styling to contrast with colored backgrounds
   const isDark = true;
 
   const getSidebarTheme = (roleName) => {
@@ -104,7 +103,6 @@ export const Sidebar = ({ role }) => {
         </button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-6 space-y-2 px-3 no-scrollbar">
         {items.map((item, index) => {
           if (item.type === 'header') {
@@ -139,7 +137,6 @@ export const Sidebar = ({ role }) => {
                 </span>
               )}
 
-              {/* Tooltip for collapsed state */}
               {isCollapsed && (
                 <div className="absolute left-full ml-4 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap hidden md:block shadow-xl">
                   {item.label}
@@ -149,7 +146,6 @@ export const Sidebar = ({ role }) => {
           );
         })}
       </nav>
-      {/* We removed the User Footer completely from the Sidebar, moving its functionality to AdminNavbar */}
     </div>
   );
 };

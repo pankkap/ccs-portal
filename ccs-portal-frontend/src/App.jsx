@@ -26,6 +26,7 @@ import CourseManagement from './pages/Admin/CourseManagement';
 import AdminELibraryManagement from './pages/Admin/ELibraryManagement';
 import SchoolManagement from './pages/Admin/SchoolManagement';
 import StudentManagement from './pages/Admin/StudentManagement';
+import AdminCertificateTemplates from './pages/Admin/CertificateTemplates';
 
 // Faculty Pages
 import FacultyDashboard from './pages/Faculty/FacultyDashboard';
@@ -110,6 +111,7 @@ function App() {
           <Route path="/admin/elibrary" element={<ProtectedRoute allowedRoles={['admin']}><AdminELibraryManagement /></ProtectedRoute>} />
           <Route path="/admin/governance" element={<ProtectedRoute allowedRoles={['admin']}><SystemGovernance /></ProtectedRoute>} />
           <Route path="/admin/schools" element={<ProtectedRoute allowedRoles={['admin']}><SchoolManagement /></ProtectedRoute>} />
+          <Route path="/admin/certificates" element={<ProtectedRoute allowedRoles={['admin']}><AdminCertificateTemplates /></ProtectedRoute>} />
           <Route path="/admin/pages" element={<ProtectedRoute allowedRoles={['admin', 'staff']}><PageManagement /></ProtectedRoute>} />
 
           {/* Faculty Routes */}
@@ -141,7 +143,7 @@ function App() {
           <Route path="/student/mock-tests" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockTests /></ProtectedRoute>} />
           <Route path="/student/placements" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Placements /></ProtectedRoute>} />
           <Route path="/student/placements/:id" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentPlacementDetail /></ProtectedRoute>} />
-          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><UnderConstruction pageName="Certification Vault" /></ProtectedRoute>} />
+          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Certificates /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentSettings /></ProtectedRoute>} />
 
           {/* Fallback */}

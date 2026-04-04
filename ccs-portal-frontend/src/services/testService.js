@@ -11,12 +11,23 @@ const api = axios.create({
 });
 
 const testService = {
+  // Faculty: Fetch all assessments owned by the logged-in faculty
   getMyTests: async () => {
     try {
       const response = await api.get('/tests/my');
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch tests' };
+      throw error.response?.data || { message: 'Failed to fetch registry records' };
+    }
+  },
+
+  // Student: Fetch public Practice Mock Tests only
+  getPublicTests: async () => {
+    try {
+      const response = await api.get('/tests');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to access Practice Lobby' };
     }
   },
 
@@ -25,7 +36,7 @@ const testService = {
       const response = await api.get(`/tests/${id}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch test details' };
+      throw error.response?.data || { message: 'Blueprint not found in registry' };
     }
   },
 
@@ -34,7 +45,7 @@ const testService = {
       const response = await api.post('/tests', data);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to create test' };
+      throw error.response?.data || { message: 'Failed to archive blueprint' };
     }
   },
 
@@ -43,7 +54,7 @@ const testService = {
       const response = await api.put(`/tests/${id}`, data);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to update test' };
+      throw error.response?.data || { message: 'Failed to commit changes' };
     }
   },
 
@@ -52,7 +63,7 @@ const testService = {
       const response = await api.delete(`/tests/${id}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to delete test' };
+      throw error.response?.data || { message: 'Failed to purge record' };
     }
   }
 };

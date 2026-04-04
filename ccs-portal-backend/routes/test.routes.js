@@ -5,11 +5,13 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 /**
  * @route GET /api/tests
- * @desc Get all mock tests (Authenticated)
+ * @desc Get all public practice mock tests (Authenticated Students)
+ * @access Private
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const tests = await Test.find()
+    // Filter: Only public practice tests for the general lobby
+    const tests = await Test.find({ testType: 'practice', isPublic: true })
       .populate('questions')
       .sort({ createdAt: -1 });
 
@@ -25,7 +27,7 @@ router.get('/', authenticate, async (req, res) => {
 
 /**
  * @route GET /api/tests/my
- * @desc Get all tests created by the logged-in faculty
+ * @desc Get all tests created by the logged-in faculty (All types)
  * @access Private (Faculty/Admin)
  */
 router.get('/my', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
@@ -48,9 +50,11 @@ router.get('/my', authenticate, authorize('faculty', 'admin', 'placement'), asyn
  * @route GET /api/tests/:id
  * @desc Get details of a specific test
  */
-router.get('/:id', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const test = await Test.findOne({ _id: req.params.id, createdBy: req.user._id })
+    // Students can access a test if it's public OR they are enrolled in a course that uses it (handled in enrollment routes)
+    // For now, allow direct fetch if authenticated for simplicity in testing player
+    const test = await Test.findById(req.params.id)
       .populate('questions');
     
     if (!test) {
@@ -65,12 +69,16 @@ router.get('/:id', authenticate, authorize('faculty', 'admin', 'placement'), asy
 
 /**
  * @route POST /api/tests
- * @desc Create a new mock test
+ * @desc Create a new assessment or practice test
  * @access Private (Faculty/Admin)
  */
 router.post('/', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
-    const { title, description, duration, maxMarks, isProctored, category, questions } = req.body;
+    const { 
+      title, description, duration, maxMarks, 
+      isProctored, category, questions, 
+      testType, isPublic, passingScore 
+    } = req.body;
 
     if (!title || !duration || !category || !questions) {
       return res.status(400).json({ 
@@ -87,6 +95,9 @@ router.post('/', authenticate, authorize('faculty', 'admin', 'placement'), async
       isProctored,
       category,
       questions,
+      testType,
+      isPublic,
+      passingScore,
       createdBy: req.user._id
     });
 
@@ -94,18 +105,18 @@ router.post('/', authenticate, authorize('faculty', 'admin', 'placement'), async
 
     res.status(201).json({
       success: true,
-      message: 'Test created successfully',
+      message: 'Assessment created successfully',
       data: { test }
     });
   } catch (error) {
     console.error('Create Test Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create test' });
+    res.status(500).json({ success: false, message: 'Failed to create assessment' });
   }
 });
 
 /**
  * @route PUT /api/tests/:id
- * @desc Update a test
+ * @desc Update an assessment
  */
 router.put('/:id', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
@@ -116,37 +127,37 @@ router.put('/:id', authenticate, authorize('faculty', 'admin', 'placement'), asy
     );
 
     if (!test) {
-      return res.status(404).json({ success: false, message: 'Test not found' });
+      return res.status(404).json({ success: false, message: 'Assessment not found' });
     }
 
     res.json({
       success: true,
-      message: 'Test updated successfully',
+      message: 'Assessment updated successfully',
       data: { test }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update test' });
+    res.status(500).json({ success: false, message: 'Failed to update assessment' });
   }
 });
 
 /**
  * @route DELETE /api/tests/:id
- * @desc Delete a test
+ * @desc Delete an assessment
  */
 router.delete('/:id', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
     const test = await Test.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
 
     if (!test) {
-      return res.status(404).json({ success: false, message: 'Test not found' });
+      return res.status(404).json({ success: false, message: 'Assessment not found' });
     }
 
     res.json({
       success: true,
-      message: 'Test deleted successfully'
+      message: 'Assessment deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete test' });
+    res.status(500).json({ success: false, message: 'Failed to delete assessment' });
   }
 });
 

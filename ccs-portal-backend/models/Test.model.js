@@ -10,8 +10,21 @@ const testSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  testType: {
+    type: String,
+    enum: ['practice', 'curriculum'],
+    default: 'practice'
+  },
+  isPublic: {
+    type: Boolean,
+    default: true
+  },
+  passingScore: {
+    type: Number,
+    default: 70
+  },
   duration: {
-    type: Number, // in minutes (Time Limit)
+    type: Number, // in minutes
     required: true,
     default: 30
   },
@@ -39,6 +52,14 @@ const testSchema = new mongoose.Schema({
   }
 }, { 
   timestamps: true 
+});
+
+// Auto-flip isPublic to false if Curriculum type is selected
+testSchema.pre('save', function(next) {
+  if (this.testType === 'curriculum') {
+    this.isPublic = false;
+  }
+  next();
 });
 
 const Test = mongoose.models.Test || mongoose.model('Test', testSchema);

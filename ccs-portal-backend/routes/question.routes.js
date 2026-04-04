@@ -15,7 +15,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get('/bank', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
     const { topic, difficulty, type, search } = req.query;
-    const filter = { createdBy: req.user._id };
+    const filter = {};
 
     if (topic) filter.topic = topic;
     if (difficulty) filter.difficulty = difficulty;
@@ -167,7 +167,7 @@ router.delete('/:id', authenticate, authorize('faculty', 'admin', 'placement'), 
 router.get('/topics', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
     const { domain } = req.query;
-    const filter = { createdBy: req.user._id };
+    const filter = {};
     if (domain) filter.domain = domain;
 
     const topics = await Question.distinct('topic', filter);
@@ -184,7 +184,7 @@ router.get('/topics', authenticate, authorize('faculty', 'admin', 'placement'), 
 router.get('/subtopics', authenticate, authorize('faculty', 'admin', 'placement'), async (req, res) => {
   try {
     const { domain, topic } = req.query;
-    const filter = { createdBy: req.user._id };
+    const filter = {};
     if (domain) filter.domain = domain;
     if (topic) filter.topic = topic;
 
