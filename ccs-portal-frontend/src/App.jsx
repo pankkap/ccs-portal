@@ -140,7 +140,7 @@ function App() {
           <Route path="/student/mock-tests" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MockTests /></ProtectedRoute>} />
           <Route path="/student/placements" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Placements /></ProtectedRoute>} />
           <Route path="/student/placements/:id" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentPlacementDetail /></ProtectedRoute>} />
-          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><Certificates /></ProtectedRoute>} />
+          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><UnderConstruction pageName="Certification Vault" /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentSettings /></ProtectedRoute>} />
 
           {/* Fallback */}

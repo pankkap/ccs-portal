@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, LogOut, ArrowLeft, ChevronDown, User, Moon, Sun } from 'lucide-react';
+import { Settings, LogOut, ArrowLeft, ChevronDown, User, Moon, Sun, Lock, Shield } from 'lucide-react';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
+import PasswordUpgradeModal from './Student/PasswordUpgradeModal';
 
 export const AdminNavbar = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -98,6 +100,18 @@ export const AdminNavbar = () => {
                   <Settings className="w-4 h-4 text-gray-400 dark:text-gray-400" />
                   {profile?.role === 'student' ? 'Identity Management' : 'Account Settings'}
                 </button>
+
+                {/* Unified Account Settings / Password Upgrade */}
+                <button
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    setIsPasswordModalOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 dark:hover:text-white rounded-lg transition-colors flex items-center gap-3"
+                >
+                  <Shield className="w-4 h-4 text-gray-400 dark:text-gray-400" />
+                  Security Settings
+                </button>
                 <button
                   onClick={() => navigate('/')}
                   className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 dark:hover:text-white rounded-lg transition-colors flex items-center gap-3"
@@ -131,6 +145,11 @@ export const AdminNavbar = () => {
           )}
         </AnimatePresence>
       </div>
+
+      <PasswordUpgradeModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)} 
+      />
     </nav>
   );
 };

@@ -86,7 +86,7 @@ const authService = {
   // Change password
   changePassword: async (passwordData) => {
     try {
-      const response = await api.put('/auth/change-password', passwordData);
+      const response = await api.post('/auth/change-password', passwordData);
       return response.data;
     } catch (error) {
       console.error('Error changing password:', error);

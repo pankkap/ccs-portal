@@ -64,7 +64,8 @@ const register = async (req, res) => {
           status: user.status,
           image: user.image,
           designation: user.designation,
-          department: user.department
+          department: user.department,
+          hasPassword: !!user.password
         }
       }
     });
@@ -138,7 +139,8 @@ const login = async (req, res) => {
           image: user.image,
           designation: user.designation,
           department: user.department,
-          lastLogin: user.lastLogin
+          lastLogin: user.lastLogin,
+          hasPassword: !!user.password
         }
       }
     });
@@ -157,7 +159,8 @@ const login = async (req, res) => {
  */
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    // Include password only for checking its existence, then convert to object for removal
+    const user = await User.findById(req.user._id).select('+password');
     
     if (!user) {
       return res.status(404).json({
@@ -166,9 +169,18 @@ const getProfile = async (req, res) => {
       });
     }
 
+    const userData = user.toObject();
+    const hasPassword = !!userData.password;
+    delete userData.password;
+
     res.status(200).json({
       success: true,
-      data: { user }
+      data: { 
+        user: { 
+          ...userData, 
+          hasPassword 
+        } 
+      }
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -218,14 +230,21 @@ const updateProfile = async (req, res) => {
       req.user._id,
       { $set: updates },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('+password');
 
-    console.log('Updated user record:', { id: user._id, image: user.image });
+    const userData = user.toObject();
+    const hasPassword = !!userData.password;
+    delete userData.password;
 
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully.',
-      data: { user }
+      data: { 
+        user: { 
+          ...userData, 
+          hasPassword 
+        } 
+      }
     });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -245,22 +264,41 @@ const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
-    // Verify current password
-    const isPasswordValid = await user.comparePassword(currentPassword);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Current password is incorrect.'
-      });
+    // Contextual Verification: 
+    // If user has a password set, enforce currentPassword verification.
+    if (user.password) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is required to change security credentials.'
+        });
+      }
+
+      const isPasswordValid = await user.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          message: 'Current password is incorrect.'
+        });
+      }
+
+      // Security Check: Ensure new password is not the same as the current one
+      const isSamePassword = await user.comparePassword(newPassword);
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password cannot be the same as your current password.'
+        });
+      }
     }
 
-    // Update password
+    // Update password (Save hook will handle hashing)
     user.password = newPassword;
     await user.save();
 
     res.status(200).json({
       success: true,
-      message: 'Password changed successfully.'
+      message: 'Password established successfully.'
     });
   } catch (error) {
     console.error('Change password error:', error);

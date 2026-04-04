@@ -18,8 +18,8 @@ const validateLogin = [
 ];
 
 const validateChangePassword = [
-  body('currentPassword').notEmpty(),
-  body('newPassword').isLength({ min: 6 })
+  body('currentPassword').optional(),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ];
 
 // Public routes
